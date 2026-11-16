@@ -110,7 +110,7 @@ export const messages = {
     "faq2Text": "Fotoğraf ve Ultra, eğitilmiş iki ayrı süper çözünürlük modeli kullanır. Görsel, kenarlarda iz oluşmaması için pay bırakılarak parça parça işlenir. 1× seçeneği aynı boyutta AI iyileştirmesi, 2× ise gerçek model çıktısıyla büyütme yapar. PNG çıktısı kayıpsızdır. Yapay zekâ bazı ayrıntıları tahmin edebilir; ağır bulanıklık veya kayıp bilgi her fotoğrafta tamamen geri getirilemez. %100 görünümde karşılaştırıp ayrıntı gücünü seçebilirsin.",
     "faq3": "Hangi görselleri kullanabilirim?",
     "faq3Text": "Durağan JPEG, PNG ve WebP görselleri kullanabilirsin. Bir seferde 10 dosya, dosya başına 25 MB ve toplam 80 MB desteklenir. Girişler en fazla 24 megapiksel, çıktılar 16 megapiksel ve uzun kenarı 8192 px olabilir. Hareketli GIF, APNG ve hareketli WebP desteklenmez. Dışa aktarımda EXIF ve konum bilgileri korunmaz.",
-    "memoryNote": "Büyük fotoğraflar cihazına göre biraz zaman alabilir.",
+    "memoryNote": "Büyük fotoğraflar, belleği korumak için küçük parçalarla işlenir.",
     "errorUNSUPPORTED": "Bu format desteklenmiyor. JPG, PNG veya WebP seç.",
     "errorANIMATED": "Hareketli görseller desteklenmiyor. Durağan bir JPG, PNG veya WebP seç.",
     "errorINVALID_FILE": "Dosya okunamadı veya bozuk. Başka bir görsel dene.",
@@ -124,11 +124,11 @@ export const messages = {
     "errorCANVAS": "Bu tarayıcı görsel işlemeyi desteklemiyor. Güncel Chrome, Safari veya Firefox kullan.",
     "errorFORMAT_UNAVAILABLE": "Tarayıcın bu formatta kayıt yapamıyor. PNG veya JPEG seç.",
     "errorENCODE": "Sonuç kaydedilemedi. Daha küçük bir ölçü veya farklı format dene.",
-    "errorMEMORY": "Cihazın belleği yetmedi. Daha küçük bir görselle tekrar dene.",
+    "errorMEMORY": "Tarayıcının kullanılabilir belleği yetersiz kaldı. Diğer sekmeleri kapatıp tekrar dene.",
     "errorOUTPUT_MEMORY": "Sonuçlar 96 MB sınırına ulaştı. Hazır dosyaları indirip çalışma alanını temizle.",
     "errorBACKGROUND": "Geçerli bir arka plan rengi seç.",
     "errorARCHIVE": "ZIP hazırlanamadı. Dosyaları tek tek indirebilirsin.",
-    "errorPROCESS": "Görsel işlenemedi. Daha küçük bir görselle veya farklı formatla tekrar dene.",
+    "errorPROCESS": "Görsel işlenirken teknik bir hata oluştu. Sayfayı yenileyip tekrar dene.",
     "zipPreparing": "ZIP hazırlanıyor…",
     "close": "Kapat",
     "enhancementMethod": "İyileştirme yöntemi",
@@ -149,7 +149,10 @@ export const messages = {
     "etaSeconds": "bu görsel ~{count} sn",
     "etaMinutes": "bu görsel ~{count} dk",
     "errorAI_LOAD": "AI modeli yüklenemedi. İnternet bağlantını kontrol edip yeniden dene; dosyan cihazında kalır.",
-    "errorAI_INFERENCE": "AI bu görseli işleyemedi. Daha küçük boyutta tekrar dene veya Fotoğraf yöntemini seç."
+    "errorAI_INFERENCE": "AI bu görseli işleyemedi. Daha küçük boyutta tekrar dene veya Fotoğraf yöntemini seç.",
+    "stageMemory": "Bellek kullanımı uyarlanıyor",
+    "errorAI_MEMORY": "AI için ayrılan bellek yetersiz kaldı. Diğer sekmeleri kapatıp yeniden dene veya Fotoğraf yöntemini seç.",
+    "errorAI_INIT": "AI başlatılamadı. Sayfayı yenileyip tekrar dene."
   },
   "en": {
     "pageTitle": "FileForge — Convert, compress and enhance images",
@@ -262,7 +265,7 @@ export const messages = {
     "faq2Text": "Photo and Ultra use two trained super-resolution models. Images are processed in padded tiles to protect the joins. 1× enhances at the original size; 2× enlarges with actual neural output. PNG export is lossless. AI can infer some details; severe blur or missing information cannot be fully recovered in every photo. Compare at 100% and choose your preferred detail strength.",
     "faq3": "Which images can I use?",
     "faq3Text": "Use still JPEG, PNG and WebP images. Add up to 10 files, 25 MB each and 80 MB in total. Inputs are limited to 24 megapixels; outputs to 16 megapixels and 8192 px on the longest edge. Animated GIF, APNG and WebP are unsupported. EXIF and location metadata are not retained in exports.",
-    "memoryNote": "Large photographs may take a moment, depending on your device.",
+    "memoryNote": "Large photos are processed in small tiles to keep memory use down.",
     "errorUNSUPPORTED": "Unsupported format. Choose JPG, PNG or WebP.",
     "errorANIMATED": "Animated images are unsupported. Choose a still JPG, PNG or WebP.",
     "errorINVALID_FILE": "This file is damaged or unreadable. Try another image.",
@@ -276,11 +279,11 @@ export const messages = {
     "errorCANVAS": "Your browser cannot process images. Use a recent Chrome, Safari or Firefox.",
     "errorFORMAT_UNAVAILABLE": "Your browser cannot export this format. Choose PNG or JPEG.",
     "errorENCODE": "The result could not be saved. Try smaller dimensions or another format.",
-    "errorMEMORY": "Your device ran out of memory. Try a smaller image.",
+    "errorMEMORY": "The browser ran out of available memory. Close other tabs and retry.",
     "errorOUTPUT_MEMORY": "Results have reached 96 MB. Download finished images, then clear the workspace.",
     "errorBACKGROUND": "Choose a valid background colour.",
     "errorARCHIVE": "The ZIP could not be created. Download your files individually.",
-    "errorPROCESS": "Processing failed. Try a smaller image or another format.",
+    "errorPROCESS": "A processing error occurred. Refresh the page and try again.",
     "zipPreparing": "Preparing ZIP…",
     "close": "Close",
     "enhancementMethod": "Enhancement method",
@@ -301,6 +304,9 @@ export const messages = {
     "etaSeconds": "this image ~{count}s",
     "etaMinutes": "this image ~{count} min",
     "errorAI_LOAD": "The AI model could not load. Check your connection and try again; your image stays on your device.",
-    "errorAI_INFERENCE": "AI could not process this image. Try smaller dimensions or choose the Photo method."
+    "errorAI_INFERENCE": "AI could not process this image. Try smaller dimensions or choose the Photo method.",
+    "stageMemory": "Adapting memory use",
+    "errorAI_MEMORY": "AI ran out of available memory. Close other tabs and retry, or choose the Photo method.",
+    "errorAI_INIT": "AI could not initialize. Refresh the page and try again."
   }
 };

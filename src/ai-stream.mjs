@@ -34,14 +34,18 @@ export async function enhanceStream(surface,runner,{scale=1,strength=.8,denoise=
   const{width,height}=surface;
   if(![1,2].includes(scale)||width*height>LIMITS.inputPixels)throw new ForgeError('DIMENSIONS');
   if(width*height*scale*scale>LIMITS.outputPixels||Math.max(width,height)*scale>LIMITS.edge)throw new ForgeError('OUTPUT_PIXELS');
-  const queue=planTiles(width,height,tileSize,padding),mix=Math.max(0,Math.min(1,strength));
-  let index=0,done=0,size=tileSize,recovered=false,elapsedPerPixel=0;
+  const queue=planTiles(width,height,tileSize,padding).reverse(),mix=Math.max(0,Math.min(1,strength));
+  let done=0,size=tileSize,recovered=false,elapsedPerPixel=0;
   const total=width*height;
   const progress=(stage='ai')=>onProgress({stage,fraction:done/total,etaSeconds:done&&elapsedPerPixel?Math.ceil((total-done)*elapsedPerPixel/1000):null,backend:runner?.backend});
   progress(runner?'ai':'enhance');
-  while(index<queue.length){
+  while(queue.length){
     check(signal);await tick();check(signal);
-    const tile=queue[index],start=Date.now();
+    const tile=queue.pop();
+    if(tile.width>size||tile.height>size){const children=split(tile,size);for(let i=children.length-1;i>=0;i--)queue.push(children[i]);continue;}
+    tile.patchWidth=Math.min(size,tile.patchWidth-2*tile.padding)+2*tile.padding;
+    tile.patchHeight=Math.min(size,tile.patchHeight-2*tile.padding)+2*tile.padding;
+    const start=Date.now();
     try{
       let clean=await surface.read(tile);
       check(signal);
@@ -69,16 +73,16 @@ export async function enhanceStream(surface,runner,{scale=1,strength=.8,denoise=
       }
       check(signal);await surface.write(tile,result,ow,oh,scale);check(signal);
       const pixels=tile.width*tile.height,rate=(Date.now()-start)/pixels;
-      elapsedPerPixel=done?.75*elapsedPerPixel+.25*rate:rate;done+=pixels;index++;progress(runner?'ai':'enhance');
+      elapsedPerPixel=done ? .75*elapsedPerPixel+.25*rate : rate;done+=pixels;progress(runner?'ai':'enhance');
     }catch(error){
       if(error?.name==='AbortError')throw error;
       if(!isMemoryPressure(error))throw error;
       if(size>8){
         size=Math.max(8,Math.floor(size/2));
-        const pending=queue.slice(index).flatMap(t=>split(t,size));queue.splice(index,queue.length-index,...pending);
+        queue.push(tile);
         progress('memory');await tick();continue;
       }
-      if(!recovered&&runner?.recover){recovered=true;if(await runner.recover()){progress('cpu');await tick();continue;}}
+      if(!recovered&&runner?.recover){recovered=true;if(await runner.recover()){queue.push(tile);progress('cpu');await tick();continue;}}
       const failure=new ForgeError(runner?'AI_MEMORY':'MEMORY');failure.cause=error;throw failure;
     }
   }

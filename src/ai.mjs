@@ -1,21 +1,17 @@
-import { enhancePixels } from './engine.mjs';
-import { enhanceTiled } from './ai-tiles.mjs';
-import { getBrowserRunner } from './ai-runtime.mjs';
-const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
-export async function enhanceWithAI(input,width,height,settings,{signal,onProgress=()=>{}}={}){
-  const check=()=>{if(signal?.aborted)throw new DOMException('Aborted','AbortError');};
-  const tick=async()=>{check();await pause();check();};
-  check();
-  const clean=await enhancePixels(input,width,height,{
-    denoise:Math.min(1,Math.max(0,Number(settings.denoise)/100))*.35,
-    sharpness:0,contrast:settings.contrast
-  },n=>onProgress({stage:'enhance',value:.05+n*.05}),tick);
-  const runner=await getBrowserRunner(settings.enhancementMethod||'photo',{signal,onProgress});
+import{createCanvasSurface}from'./canvas-surface.mjs';
+import{enhanceStream}from'./ai-stream.mjs';
+import{getBrowserRunner}from'./ai-runtime.mjs';
+export async function enhanceCanvas(image,width,height,output,settings,{signal,onProgress=()=>{}}={}){
+  const ai=settings.enhancementMethod!=='classic';
+  let runner=null,surface=null;
   try{
-    return await enhanceTiled(clean,width,height,runner,{
+    if(ai)runner=await getBrowserRunner(settings.enhancementMethod||'photo',{signal,onProgress});
+    surface=createCanvasSurface(image,width,height,output,{type:settings.outputType,background:settings.background,contrast:settings.contrast});
+    return await enhanceStream(surface,runner,{
       scale:Number(settings.scale),strength:Number(settings.sharpness)/100,
-      tileSize:runner.tileSize,padding:runner.padding,signal,tick,
-      onProgress:p=>onProgress({stage:'ai',value:.22+p.fraction*.64,etaSeconds:p.etaSeconds,backend:runner.backend})
+      denoise:Number(settings.denoise)/100*(ai?.35:1),sharpness:ai?0:Number(settings.sharpness)/100,
+      tone:surface.tone,tileSize:runner?.tileSize||96,padding:runner?.padding||4,signal,
+      onProgress:p=>onProgress({stage:p.stage,value:.22+p.fraction*.64,etaSeconds:p.etaSeconds,backend:p.backend})
     });
-  }finally{runner.release();}
+  }finally{surface?.dispose();runner?.release();}
 }

@@ -1,4 +1,5 @@
 import { ForgeError } from './engine.mjs';
+import { isMemoryPressure } from './errors.mjs';
 const registered=new WeakSet();
 export const AI_MODELS=Object.freeze({
   photo:{path:'photo/model.json',inputMax:255,outputMax:255,tileSize:96,padding:16},
@@ -35,8 +36,8 @@ export function createModelRunner(tf,model,definition){
       const values=await prediction.data(),output=new Uint8ClampedArray(values.length);
       for(let i=0;i<values.length;i++){if(!Number.isFinite(values[i]))throw new ForgeError('AI_INFERENCE');output[i]=values[i];}
       return output;
-    }catch(e){if(e.code)throw e;throw new ForgeError('AI_INFERENCE');}
-    finally{prediction?.dispose();}
+    }catch(e){if(typeof e.code==='string')throw e;const failure=new ForgeError(isMemoryPressure(e)?'AI_MEMORY':'AI_INFERENCE');failure.cause=e;throw failure;}
+    finally{try{prediction?.dispose();}catch{}}
   }};
 }
 const check=signal=>{if(signal?.aborted)throw new DOMException('Aborted','AbortError');};
@@ -67,34 +68,48 @@ export function releaseAIResources(){
   if(currentModel?.model)currentModel.model.dispose();
   currentModel=null;
 }
+export function lowMemoryDevice(){
+  const nav=globalThis.navigator;
+  return !!(nav?.maxTouchPoints>0 || nav?.deviceMemory && nav.deviceMemory<=8 || typeof matchMedia==='function'&&matchMedia('(pointer: coarse)').matches);
+}
+export function setMemoryBudget(tf,compact){
+  try{tf.env().set('WEBGL_DELETE_TEXTURE_THRESHOLD',(compact?16:64)*1024*1024);}catch{}
+}
 export async function getBrowserRunner(method,{signal,onProgress=()=>{}}={}){
   const definition=AI_MODELS[method];
   if(!definition)throw new ForgeError('AI_LOAD');
-  check(signal);clearTimeout(idleTimer);
-  onProgress({stage:'model',value:.11});
+  check(signal);clearTimeout(idleTimer);onProgress({stage:'model',value:.11});
   const tf=await abortable(loadRuntime(),signal);check(signal);
-  if(!tf.getBackend()){
-    let gpu=false;try{gpu=await tf.setBackend('webgl');}catch{}
-    if(!gpu)await tf.setBackend('cpu');
-  }
-  await tf.ready();check(signal);registerModelLayers(tf);
-  if(currentModel?.key!==method){
+  const compact=lowMemoryDevice();setMemoryBudget(tf,compact);
+  try{
+    if(!tf.getBackend()){
+      let gpu=false;try{gpu=await tf.setBackend('webgl');}catch{}
+      if(!gpu)await tf.setBackend('cpu');
+    }
+    await tf.ready();check(signal);registerModelLayers(tf);
+  }catch(error){if(error.name==='AbortError')throw error;const failure=new ForgeError(isMemoryPressure(error)?'AI_MEMORY':'AI_INIT');failure.cause=error;throw failure;}
+  async function loadModel(){
+    if(currentModel?.key===method&&currentModel.backend===tf.getBackend())return currentModel.model;
     releaseAIResources();
     const url=new URL('../models/'+definition.path,import.meta.url).href;
     try{
-      const model=await tf.loadLayersModel(tf.io.http(url,{
-        requestInit:{signal,credentials:'omit',cache:'force-cache'},
-        onProgress:n=>onProgress({stage:'model',value:.11+Math.min(1,Math.max(0,n))*.08})
-      }));
+      const model=await tf.loadLayersModel(tf.io.http(url,{requestInit:{signal,credentials:'omit',cache:'force-cache'},onProgress:n=>onProgress({stage:'model',value:.11+Math.min(1,Math.max(0,n))*.08})}));
       if(signal?.aborted){model.dispose();check(signal);}
-      currentModel={key:method,model};
-    }catch(e){if(e.name==='AbortError')throw e;throw new ForgeError('AI_LOAD');}
+      currentModel={key:method,model,backend:tf.getBackend()};return model;
+    }catch(error){if(error.name==='AbortError')throw error;const failure=new ForgeError(isMemoryPressure(error)?'AI_MEMORY':'AI_LOAD');failure.cause=error;throw failure;}
   }
-  check(signal);
-  const backend=tf.getBackend();
+  let model=await loadModel(),backend=tf.getBackend(),active=createModelRunner(tf,model,definition),recovered=false;
   if(backend==='cpu')onProgress({stage:'cpu',value:.2,backend});
-  const runner=createModelRunner(tf,currentModel.model,definition);
-  return{...runner,backend,tileSize:backend==='cpu'?24:definition.tileSize,padding:definition.padding,
-    release(){clearTimeout(idleTimer);idleTimer=setTimeout(releaseAIResources,120000);}
+  return{
+    get backend(){return backend;},
+    tileSize:backend==='cpu'?24:compact?(method==='ultra'?24:48):definition.tileSize,
+    padding:definition.padding,
+    predict(...args){return active.predict(...args);},
+    async recover(){
+      check(signal);if(backend!=='webgl'||recovered)return false;recovered=true;
+      releaseAIResources();await tf.setBackend('cpu');try{tf.removeBackend('webgl');}catch{}
+      await tf.ready();check(signal);backend='cpu';model=await loadModel();active=createModelRunner(tf,model,definition);return true;
+    },
+    release(){clearTimeout(idleTimer);idleTimer=setTimeout(releaseAIResources,30000);}
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "fileforge",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "Private-by-design local image studio, by Sadık Can Çeşka",

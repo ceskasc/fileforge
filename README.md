@@ -16,11 +16,11 @@ Durağan JPG, PNG ve WebP dönüştürme; WebP/JPEG sıkıştırma; oran koruyan
 - **AI · Ultra detay:** Daha derin RRDN / ESRGAN 2× modeli; yaklaşık 29 MB ağırlık ve daha uzun işlem süresi.
 - **Hızlı filtre:** Model indirmeden kenar koruyan gürültü azaltma ve kontrollü netleştirme.
 
-AI, fotoğrafı gerçek boyutunda paylı parçalara ayırıp işler. 2× seçeneği gerçek model çıktısını kullanır. 1×, yüksek çözünürlüklü neural çıktıyı Lanczos ile orijinal boyuta indirir. Kaynak sessizce küçültülmez. Kenar payı, yansımalı sınırlar ve sabit parça ölçüleri, ek yerlerini ve bellek kullanımını kontrol altında tutar. Yapay zekâ tahmini ayrıntılar oluşturabilir; her bulanıklığın tamamen geri getirilmesi garanti edilmez.
+AI, fotoğrafı gerçek boyutunda paylı parçalara ayırıp işler. 2× seçeneği gerçek model çıktısını kullanır. 1×, yüksek çözünürlüklü neural çıktıyı Lanczos ile orijinal boyuta indirir. Kaynak sessizce küçültülmez. Kaynak görselden yalnızca küçük Canvas kesitleri okunur; tam boyutlu RGBA kopyaları oluşturulmaz. Global ton ayarı en fazla 256 px önizlemeden hesaplanır ve tüm parçalarda aynı uygulanır. Telefonlarda başlangıç parçaları daha küçüktür; gerçek bellek baskısında boyut kademeli azaltılır. GPU kullanılamaz hale gelirse aynı eğitilmiş model CPU üzerinde devam eder. Kenar payı, yansımalı sınırlar ve sabit parça ölçüleri, ek yerlerini ve bellek kullanımını kontrol altında tutar. Yapay zekâ tahmini ayrıntılar oluşturabilir; her bulanıklığın tamamen geri getirilmesi garanti edilmez.
 
 AI yöntemi varsayılandır; iyileştirme çıktısı varsayılan **PNG** ile kayıpsız kaydedilir. Ayrıntı gücü ve hafif ön gürültü azaltma ayrı ayarlanır. **%100** önizleme gerçek çıktı piksel boyutunu gösterir; sürükleyerek veya klavye oklarıyla aynı bölgeyi iki katmanda inceleyebilirsin.
 
-TensorFlow.js ve yalnızca seçilen model ilk kullanımda aynı siteden yüklenir. WebGL hızlandırma varsa kullanılır; CPU aynı modeli çalıştırır ve daha yavaştır. Süre tahmini gerçek tamamlanan parçalardan hesaplanır. İptal parça aralarında uygulanır; tamamlanan indirmeler korunur. AI yükleme hatasında sessizce klasik filtreye geçilmez.
+TensorFlow.js ve yalnızca seçilen model ilk kullanımda aynı siteden yüklenir. WebGL hızlandırma varsa kullanılır; CPU aynı modeli çalıştırır ve daha yavaştır. Boş WebGL texture önbelleği mobilde 16 MiB, masaüstünde 64 MiB eşiğiyle sınırlandırılır. Model 30 saniye kullanılmadığında serbest bırakılır. Süre tahmini gerçek tamamlanan parçalardan hesaplanır. İptal parça aralarında uygulanır; tamamlanan indirmeler korunur. AI yükleme hatasında sessizce klasik filtreye geçilmez.
 
 ## Gizlilik ve sınırlar
 
@@ -46,7 +46,7 @@ python3 -m http.server --directory public 8080
 
 `prepare:ai`, TensorFlow.js **4.22.0** npm tarballının SHA-512 bütünlüğünü ve her model dosyasının sabit Git blob SHA değerini doğrular. Kaynak revizyonu `6d074fb5835a6c659a19c83123beab8c3f28beac` olarak sabittir. Yayımlanan `ai-assets-manifest.json` SHA-256 özetlerini içerir. Lisanslar ve kaynaklar: [THIRD_PARTY.md](THIRD_PARTY.md).
 
-Birim testleri dosya doğrulama, geometri, şeffaflık, filtreler, ZIP uyumluluğu, neural parça birleştirme, iptal ve ilerlemeyi kapsar. `test:ai`, **her iki gerçek eğitilmiş modeli** TensorFlow CPU üzerinde üretimdeki tahmin ve birleştirme koduyla çalıştırır; çıktı şekli, normalizasyon, sonucun basit büyütmeden farklı olması ve tensor belleğinin serbest bırakılması doğrulanır. Ölçümler `ai-validation.json` içinde tutulur. Bu kontroller gerçek mobil WebGL veya görsel tarayıcı kontrolü yerine geçmez; hazırlama oturumunda tarayıcı önizlemesi kullanılamamıştır.
+Birim testleri dosya doğrulama, geometri, şeffaflık, filtreler, ZIP uyumluluğu, neural parça birleştirme, iptal ve ilerlemeyi kapsar. Bellek regresyon testleri 12 MP görsellerde tam kare piksel okumasını reddeden bir Canvas sınırı, parça boyutunun düşürülerek tekrar denenmesi, CPU kurtarma ve farklı teknik hataların bellek hatası olarak gösterilmemesini doğrular. `test:ai`, **her iki gerçek eğitilmiş modeli** TensorFlow CPU üzerinde üretimdeki tahmin ve birleştirme koduyla çalıştırır; çıktı şekli, normalizasyon, sonucun basit büyütmeden farklı olması ve tensor belleğinin serbest bırakılması doğrulanır. Ölçümler `ai-validation.json` içinde tutulur. Bu kontroller gerçek mobil WebGL veya görsel tarayıcı kontrolü yerine geçmez; hazırlama oturumunda tarayıcı önizlemesi kullanılamamıştır.
 
 ## Yayın
 
