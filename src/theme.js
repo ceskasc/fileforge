@@ -1,0 +1,1 @@
+try{const s=localStorage.getItem('fileforge-theme');document.documentElement.dataset.theme=s==='dark'||s==='light'?s:matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}catch{document.documentElement.dataset.theme='light';}
