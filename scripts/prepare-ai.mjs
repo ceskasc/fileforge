@@ -22,9 +22,9 @@ if(actual!==metadata.dist.integrity)throw new Error('TensorFlow package integrit
 writeFileSync(root+'/tensorflow.tgz',archive);
 const list=execFileSync('tar',['-tzf',root+'/tensorflow.tgz'],{encoding:'utf8'}).trim().split('\n');
 const runtime=list.find(p=>p==='package/dist/tf.min.js'),license=list.find(p=>/^package\/LICENSE(?:\.txt)?$/i.test(p));
-if(!runtime||!license)throw new Error('TensorFlow runtime or licence missing');
-execFileSync('tar',['-xzf',root+'/tensorflow.tgz','-C',root,runtime,license]);
-copyFileSync(root+'/'+runtime,root+'/vendor/tf.min.js');copyFileSync(root+'/'+runtime,root+'/runtime/tf.cjs');copyFileSync(root+'/'+license,root+'/vendor/tensorflow-LICENSE.txt');
+if(!runtime)throw new Error('TensorFlow runtime missing: '+list.filter(p=>/tf.*min|license/i.test(p)).join(', '));
+execFileSync('tar',['-xzf',root+'/tensorflow.tgz','-C',root,runtime,...(license?[license]:[])]);
+copyFileSync(root+'/'+runtime,root+'/vendor/tf.min.js');copyFileSync(root+'/'+runtime,root+'/runtime/tf.cjs');if(license)copyFileSync(root+'/'+license,root+'/vendor/tensorflow-LICENSE.txt');else writeFileSync(root+'/vendor/tensorflow-LICENSE.txt',await download('https://raw.githubusercontent.com/tensorflow/tfjs/tfjs-v4.22.0/LICENSE'));
 const modelLicense=await download('https://raw.githubusercontent.com/thekevinscott/UpscalerJS/'+config.revision+'/LICENSE');
 writeFileSync(root+'/models/LICENSE.txt',modelLicense);
 records.push({path:'vendor/tf.min.js',sha256:createHash('sha256').update(readFileSync(root+'/vendor/tf.min.js')).digest('hex'),bytes:readFileSync(root+'/vendor/tf.min.js').length});
