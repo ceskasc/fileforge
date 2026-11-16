@@ -1,7 +1,7 @@
 name: FileForge
 on:
   push:
-    branches: [main]
+    branches: [main, ai-photo-quality]
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
   quality:
     name: Test and package
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -20,8 +20,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+      - name: Prepare pinned, integrity-checked neural models
+        run: npm run prepare:ai
       - name: Image engine, processing and archive tests
         run: npm test
+      - name: Run actual trained Photo and Ultra models
+        run: npm run test:ai
       - name: Syntax, HTML and accessibility contracts
         run: npm run check
       - name: Install SVG rasterizer for sharing images
@@ -37,6 +41,7 @@ jobs:
           path: |
             public/
             build-report.json
+            ai-validation.json
           include-hidden-files: true
           retention-days: 7
       - name: Upload Pages artifact
@@ -45,6 +50,7 @@ jobs:
           path: public
   deploy:
     name: Publish to GitHub Pages
+    if: github.ref == 'refs/heads/main'
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -63,3 +69,22 @@ jobs:
       - name: Deploy verified site
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Verify published AI files
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          node --input-type=module <<'JS'
+          const base=process.env.SITE_URL;
+          for(let attempt=0;attempt<8;attempt++){
+            try{
+              const page=await fetch(base+'?ai='+process.env.GITHUB_SHA);
+              if(!page.ok||!(await page.text()).includes('enhancementMethod'))throw new Error('Updated page is not available');
+              for(const path of ['src/ai.mjs','models/photo/model.json','models/ultra/model.json','vendor/tf.min.js']){
+                const response=await fetch(new URL(path,base),{method:'HEAD'});
+                if(!response.ok)throw new Error(path+' HTTP '+response.status);
+              }
+              console.log('Published AI page, runtime and both neural model manifests are reachable.');
+              process.exit(0);
+            }catch(error){if(attempt===7)throw error;await new Promise(r=>setTimeout(r,5000));}
+          }
+          JS

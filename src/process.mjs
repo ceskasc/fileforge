@@ -28,9 +28,14 @@ export async function processImage(file,s,{onProgress=()=>{},signal}={}){
   const target=targetDimensions(width,height,s);source=canvas(width,height);
   const ctx=source.getContext('2d',{willReadFrequently:true});if(!ctx)throw new ForgeError('CANVAS');
   ctx.drawImage(image,0,0,width,height);image.close?.();let data=ctx.getImageData(0,0,width,height).data;source.width=source.height=1;
-  if(s.mode==='enhance')data=await enhancePixels(data,width,height,{denoise:Number(s.denoise)/100,sharpness:Number(s.sharpness)/100,contrast:s.contrast},n=>onProgress({stage:'enhance',value:.1+n*.47}),tick);
+  let workingWidth=width,workingHeight=height;
+  if(s.mode==='enhance'&&s.enhancementMethod!=='classic'){
+   const{enhanceWithAI}=await import('./ai.mjs');
+   const enhanced=await enhanceWithAI(data,width,height,s,{signal,onProgress});
+   data=enhanced.data;workingWidth=enhanced.width;workingHeight=enhanced.height;
+  }else if(s.mode==='enhance')data=await enhancePixels(data,width,height,{denoise:Number(s.denoise)/100,sharpness:Number(s.sharpness)/100,contrast:s.contrast},n=>onProgress({stage:'enhance',value:.1+n*.47}),tick);
   check();
-  if(target.width!==width||target.height!==height)data=await resizePixels(data,width,height,target.width,target.height,n=>onProgress({stage:'resize',value:(s.mode==='enhance'?.57:.1)+n*(s.mode==='enhance'?.28:.75)}),tick);
+  if(target.width!==workingWidth||target.height!==workingHeight)data=await resizePixels(data,workingWidth,workingHeight,target.width,target.height,n=>onProgress({stage:'resize',value:(s.mode==='enhance'?.57:.1)+n*(s.mode==='enhance'?.28:.75)}),tick);
   if(type==='image/jpeg')data=flattenPixels(data,s.background||'#ffffff');
   onProgress({stage:'encode',value:.9});output=canvas(target.width,target.height);const out=output.getContext('2d');if(!out)throw new ForgeError('CANVAS');
   out.putImageData(new ImageData(data,target.width,target.height),0,0);await tick();const blob=await encode(output,type,quality);check();

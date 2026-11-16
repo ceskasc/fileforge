@@ -2,62 +2,58 @@
 
 **Görsellerin. Tam istediğin gibi.**
 
-Sadık Can Çeşka'nın [portföyüyle](https://ceskacan.com/) aynı krem, mürekkep ve mavi paleti; yerel DM Sans ve Space Grotesk fontlarıyla tasarlanmış, tarayıcıda çalışan bir görsel stüdyosu.
+[FileForge](https://ceskasc.github.io/fileforge/) · [Sadık Can Çeşka](https://ceskacan.com/)
+
+CV portföyüyle aynı krem, mürekkep ve mavi paleti; DM Sans ve Space Grotesk fontlarıyla tasarlanan görsel stüdyosu. Mobil, TR/EN ve açık/koyu tema.
 
 ## Araçlar
 
-- **Dönüştür:** Durağan JPEG, PNG ve WebP arasında geçiş. Şeffaflık korunur; JPEG için arka plan rengi seçilir.
-- **Sıkıştır:** WebP/JPEG dışa aktarma kalitesiyle daha hafif dosyalar. Gerçek boyut ve tasarruf gösterilir; sonuç büyürse de doğru belirtilir. PNG kayıpsız dışa aktarılır; PNG için kalite kaydırıcısı gösterilmez.
-- **Boyutlandır:** Tek ölçü, oranı koruyarak kutuya sığdırma veya serbest ölçü. Varsayılan olarak küçük görseller büyütülmez.
-- **Kalite artır:** Kenar koruyan gürültü azaltma, kontrollü luma netleştirme, sınırlı otomatik ton dengeleme ve isteğe bağlı 2× Lanczos3 büyütme. Yapay zekâ modeli kullanılmaz; var olmayan ayrıntılar yeniden üretilmez.
-- Önce / sonra karşılaştırması, 10 görsele kadar toplu işlem, durdurma, tek tek ve ZIP indirme.
-- Türkçe / İngilizce; açık / koyu tema; klavye ile kullanılabilir araç sekmeleri.
+Durağan JPG, PNG ve WebP dönüştürme; WebP/JPEG sıkıştırma; oran koruyan veya serbest boyutlandırma. Toplu işlem, durdurma, önce/sonra karşılaştırması ve ZIP indirme.
+
+### AI fotoğraf iyileştirme
+
+- **AI · Fotoğraf:** Eğitilmiş RDN 2× modeli; doğal ayrıntı ve netlik için.
+- **AI · Ultra detay:** Daha derin RRDN / ESRGAN 2× modeli; yaklaşık 29 MB ağırlık ve daha uzun işlem süresi.
+- **Hızlı filtre:** Model indirmeden kenar koruyan gürültü azaltma ve kontrollü netleştirme.
+
+AI, fotoğrafı gerçek boyutunda paylı parçalara ayırıp işler. 2× seçeneği gerçek model çıktısını kullanır. 1×, yüksek çözünürlüklü neural çıktıyı Lanczos ile orijinal boyuta indirir. Kaynak sessizce küçültülmez. Kenar payı, yansımalı sınırlar ve sabit parça ölçüleri, ek yerlerini ve bellek kullanımını kontrol altında tutar. Yapay zekâ tahmini ayrıntılar oluşturabilir; her bulanıklığın tamamen geri getirilmesi garanti edilmez.
+
+AI yöntemi varsayılandır; iyileştirme çıktısı varsayılan **PNG** ile kayıpsız kaydedilir. Ayrıntı gücü ve hafif ön gürültü azaltma ayrı ayarlanır. **%100** önizleme gerçek çıktı piksel boyutunu gösterir; sürükleyerek veya klavye oklarıyla aynı bölgeyi iki katmanda inceleyebilirsin.
+
+TensorFlow.js ve yalnızca seçilen model ilk kullanımda aynı siteden yüklenir. WebGL hızlandırma varsa kullanılır; CPU aynı modeli çalıştırır ve daha yavaştır. Süre tahmini gerçek tamamlanan parçalardan hesaplanır. İptal parça aralarında uygulanır; tamamlanan indirmeler korunur. AI yükleme hatasında sessizce klasik filtreye geçilmez.
 
 ## Gizlilik ve sınırlar
 
-Dosyalar sunucuya gönderilmez. İşlem bir Web Worker içinde, uygun olmayan tarayıcılarda sıra vererek ana iş parçacığında gerçekleşir. Harici çalışma zamanı bağımlılığı, API anahtarı, takipçi veya üyelik yoktur.
+Fotoğraflar veya sonuçlar hiçbir sunucuya yüklenmez. Harici çalışma zamanı CDN'i, üyelik, API anahtarı veya takipçi kullanılmaz. Tema ve dil yalnızca cihazda saklanır. EXIF ve konum bilgileri çıktıya kopyalanmaz.
 
-Bir seferde **10 dosya / toplam 80 MiB**, her biri **25 MiB**. Girişler **24 MP**, çıktılar **16 MP / uzun kenar 8192 px** ile sınırlıdır. Sonuç belleği 96 MiB ile sınırlandırılır. 2× sınırı aşarsa otomatik küçültme yerine açık bir hata gösterilir. Dosyalar sırayla işlenir; Lanczos için 32 satırlık bellek önbelleği kullanılır.
+Bir seferde **10 dosya / toplam 80 MiB**, dosya başına **25 MiB**; girişler **24 MP**, çıktılar **16 MP / uzun kenar 8192 px**. Sonuç belleği 96 MiB. 2× sınırı aşarsa 1× seçilebilir veya önce boyutlandırılabilir. Hareketli GIF, APNG ve WebP desteklenmez. Profesyonel ICC / HDR iş akışı amaçlanmaz.
 
-Hareketli GIF, APNG ve WebP kabul edilmez. EXIF/konum bilgileri çıktıya kopyalanmaz. Renkler tarayıcının Canvas renk yönetimiyle sRGB olarak dışa aktarılır. Profesyonel renk profili / HDR iş akışı amaçlanmaz. JPEG yönü tarayıcının EXIF yönlendirmesiyle okunur.
+Büyük fotoğrafların AI ile işlenmesi özellikle Ultra ve CPU modunda birkaç dakika veya daha uzun sürebilir. Fotoğraf / Ultra modelleri birbirinin hız bahanesiyle değiştirilmez.
 
-## Yerelde çalıştırma
+## Geliştirme ve doğrulama
 
-Node.js 22+ ve Python 3 gerekir. Çalışma zamanı için paket kurulumu yoktur.
+Node.js 22+, Python 3 ve SVG paylaşım görselleri için librsvg gerekir. npm bağımlılık kurulumu gerekmez; AI varlıkları paket bütünlüğü doğrulanarak indirilir.
 
 ```sh
-python3 -m http.server 8080
+npm run prepare:ai
 npm test
+npm run test:ai
 npm run check
-```
-
-Uygulama: http://localhost:8080/
-
-Yayın paketi oluşturmak için librsvg'nin `rsvg-convert` komutu gerekir; GitHub iş akışı bunu yükler.
-
-```sh
 sudo apt-get install librsvg2-bin fonts-dejavu-core
 npm run build
+python3 -m http.server --directory public 8080
 ```
 
-`public/` yalnızca yayımlanacak statik dosyaları içerir. Sosyal paylaşım ve Apple simgesi SVG kaynaklarından PNG olarak oluşturulur.
+`prepare:ai`, TensorFlow.js **4.22.0** npm tarballının SHA-512 bütünlüğünü ve her model dosyasının sabit Git blob SHA değerini doğrular. Kaynak revizyonu `6d074fb5835a6c659a19c83123beab8c3f28beac` olarak sabittir. Yayımlanan `ai-assets-manifest.json` SHA-256 özetlerini içerir. Lisanslar ve kaynaklar: [THIRD_PARTY.md](THIRD_PARTY.md).
 
-## GitHub Pages
+Birim testleri dosya doğrulama, geometri, şeffaflık, filtreler, ZIP uyumluluğu, neural parça birleştirme, iptal ve ilerlemeyi kapsar. `test:ai`, **her iki gerçek eğitilmiş modeli** TensorFlow CPU üzerinde üretimdeki tahmin ve birleştirme koduyla çalıştırır; çıktı şekli, normalizasyon, sonucun basit büyütmeden farklı olması ve tensor belleğinin serbest bırakılması doğrulanır. Ölçümler `ai-validation.json` içinde tutulur. Bu kontroller gerçek mobil WebGL veya görsel tarayıcı kontrolü yerine geçmez; hazırlama oturumunda tarayıcı önizlemesi kullanılamamıştır.
 
-Yayın adresi: https://ceskasc.github.io/fileforge/
+## Yayın
 
-İlk kurulumda repoda **Settings → Pages → Build and deployment → Source → GitHub Actions** seçilmelidir. Ardından **Actions → FileForge → Run workflow**. Sonraki main değişiklikleri otomatik test edilir ve yayımlanır. İlk Pages etkinleştirmesi için GitHub yönetici yetkisi gerekir; normal GITHUB_TOKEN bunu sağlayamayabilir.
-
-İş akışı önce testleri ve kaynak kontrollerini çalıştırır; sonra statik paketi oluşturur. Yalnızca başarılı kontrolden sonra yayın adımı başlar. Kontrol ve yayın işleri ayrıdır; Pages kurulumu eksik olsa da doğrulama sonucu ve yayın paketi görülebilir.
-
-## Doğrulama kapsamı
-
-Birim testleri; dosya imzalarını, hatalı ve hareketli girdileri, geometriyi, renk/şeffaflık korumasını, gürültü azaltmayı, netleştirmeyi, büyütmeyi, durdurmayı ve standart Python ZIP okuyucusuyla arşiv uyumluluğunu denetler.
-
-Pipeline testleri kodlayıcı/çözücü sınırlarını test ikizleriyle denetler. Bunlar gerçek tarayıcı kodekleri veya görsel ekran kontrolleri yerine geçmez. HTML yapısı, erişilebilir etiketler, UI bağlantıları, çeviriler ve yerel varlıklar ayrıca kontrol edilir. İlk hazırlama oturumunda tarayıcı önizlemesi kullanılamadığı için gerçek cihaz / tarayıcı görsel kontrolü gerçekleştirilmemiştir.
+GitHub Pages kaynağı **GitHub Actions** olmalıdır. Main üzerindeki değişiklikler varlık doğrulaması, test ve paketleme başarılı olunca otomatik yayımlanır. `ai-photo-quality` dalı aynı kontrolleri çalıştırır ve üretime yayımlamaz. Yayından sonra HTML, AI runtime ve her iki model manifestinin HTTP erişimi ayrıca kontrol edilir.
 
 ## Kaynak yapısı
 
-`src/engine.mjs`: saf piksel/geometri/ZIP işlemleri. `src/process.mjs`: Canvas işleme hattı. `src/image-worker.mjs`: arka plan yürütme. `src/app.mjs`: arayüz, kuyruk, iptal ve indirme. `src/i18n.mjs`: TR/EN metinler.
+`src/engine.mjs`: piksel/geometri/ZIP. `src/process.mjs`: kodlama hattı. `src/ai-tiles.mjs`: paylı neural işleme ve alfa koruması. `src/ai-runtime.mjs`: TensorFlow, model ve backend yönetimi. `src/ai.mjs`: iyileştirme akışı. `src/app.mjs`: arayüz ve önizleme.
 
-MIT. Fontların SIL OFL lisansları `assets/` altında korunur.
+MIT. Fontların SIL OFL lisansları ve AI bileşenlerinin kendi lisansları korunur.

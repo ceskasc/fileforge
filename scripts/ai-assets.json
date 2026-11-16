@@ -1,0 +1,56 @@
+{
+  "revision": "6d074fb5835a6c659a19c83123beab8c3f28beac",
+  "tensorflowVersion": "4.22.0",
+  "files": [
+    [
+      "photo",
+      "models/esrgan-medium/models/x2/model.json",
+      "89c6206fdbaa732e49c6959720444e306b7ea206"
+    ],
+    [
+      "photo",
+      "models/esrgan-medium/models/x2/group1-shard1of1.bin",
+      "1566be7f9a3f0fa12f3d2d2d74bb22879390f14a"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/model.json",
+      "429ab9891ecb707d4e3eee49b5030d6d59369666"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard1of7.bin",
+      "bd39a5408068cbd33fc0b3acd7ddb1e307c566fa"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard2of7.bin",
+      "3a6d97e0ab5cc8b00c884694aaa4b89d2c93bb82"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard3of7.bin",
+      "f2690008a371a7dfe47b6d08563b735099f4cf8a"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard4of7.bin",
+      "7fbd26f3a2555412a3283580e4786ea64d6bb235"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard5of7.bin",
+      "ce29ac868e8047f165de19d45943dafa8c1faf93"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard6of7.bin",
+      "80d46242c4f9411c3ee3c5d3178d249193989788"
+    ],
+    [
+      "ultra",
+      "models/esrgan-thick/models/x2/group1-shard7of7.bin",
+      "adb9112f2c7543536f7c9bf7e9f3d43d1b7a69e5"
+    ]
+  ]
+}

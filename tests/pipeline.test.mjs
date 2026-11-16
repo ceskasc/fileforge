@@ -22,9 +22,9 @@ test('pipeline sends requested format, quality and composited pixels to encoder'
   assert.equal(encoded.quality,.8);assert.deepEqual(encoded.pixels,[255,127,127,255,0,0,255,255]);
  }finally{restore();}
 });
-test('pipeline integrates enhancement and real 2x pixel geometry before encoding',async()=>{
+test('classic pipeline integrates filters and 2x pixel geometry before encoding',async()=>{
  const restore=environment();try{
-  const progress=[],out=await processImage(file(),{mode:'enhance',format:'png',scale:2,denoise:40,sharpness:55,contrast:true,quality:95},{onProgress:p=>progress.push(p)});
+  const progress=[],out=await processImage(file(),{mode:'enhance',enhancementMethod:'classic',format:'png',scale:2,denoise:40,sharpness:55,contrast:true,quality:95},{onProgress:p=>progress.push(p)});
   assert.equal(out.width,4);assert.equal(out.height,2);assert.equal(JSON.parse(await out.blob.text()).pixels.length,32);assert.equal(progress.at(-1).value,1);
  }finally{restore();}
 });
