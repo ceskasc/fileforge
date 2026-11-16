@@ -1,0 +1,16 @@
+{
+  "name": "fileforge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Private-by-design local image studio, by Sadık Can Çeşka",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

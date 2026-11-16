@@ -58,7 +58,7 @@ function renderPreview(){
 }
 function updateControls(){
  const s=readSettings(),item=selected(),locked=state.busy||state.adding||state.zipping;
- $('settingsFields').disabled=locked;$('resizeFields').hidden=state.mode!=='resize';$('enhanceFields').hidden=state.mode!=='enhance';$('modeHint').textContent=t(state.mode+'Hint');
+ $('settingsFields').disabled=locked;for(const id of ['width','height','lockAspect','allowUpscale'])$(id).disabled=locked||state.mode!=='resize';for(const id of ['scale','sharpness','denoise','contrast'])$(id).disabled=locked||state.mode!=='enhance';$('resizeFields').hidden=state.mode!=='resize';$('enhanceFields').hidden=state.mode!=='enhance';$('modeHint').textContent=t(state.mode+'Hint');
  const type=outputType(s.format,item?.meta.type||'image/jpeg');
  $('formatHint').textContent=t(type==='image/png'?'pngHint':type==='image/jpeg'?'jpegHint':'webpHint');
  const pngOnly=s.format==='png'||(s.format==='original'&&state.items.length>0&&state.items.every(i=>i.meta.type==='image/png'));
@@ -120,7 +120,7 @@ async function workerProcess(file,settings,signal,onProgress){
 async function processAll(event){
  event.preventDefault();if(state.busy||state.adding||state.zipping||!state.items.length)return;if(!$('processingForm').reportValidity())return;
  const settings=readSettings(),signature=JSON.stringify(settings);state.controller=new AbortController();const signal=state.controller.signal;
- state.busy=true;$('progressArea').hidden=false;notice('processing');render();let completed=0,failures=0;
+ state.busy=true;$('progressBar').value=0;$('progressPercent').textContent='0%';$('progressArea').hidden=false;notice('processing');render();let completed=0,failures=0;
  for(let index=0;index<state.items.length;index++){
   if(signal.aborted)break;const item=state.items[index];item.status='processing';item.progress=0;item.error=null;renderQueue();let previous=-1;
   try{

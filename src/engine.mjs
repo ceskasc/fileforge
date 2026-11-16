@@ -69,7 +69,7 @@ export function targetDimensions(width,height,s){
  if(![width,height].every(n=>Number.isInteger(n)&&n>0))fail('DIMENSIONS');
  let w=width,h=height;
  if(s.mode==='resize'){
-  const rw=Number(s.width)||0,rh=Number(s.height)||0;
+  const rw=s.width===''||s.width==null?0:Number(s.width),rh=s.height===''||s.height==null?0:Number(s.height);
   if(![rw,rh].every(n=>Number.isInteger(n)&&n>=0&&n<=LIMITS.edge)||(!rw&&!rh))fail('DIMENSIONS');
   if(s.lockAspect!==false||!rw||!rh){
    let factor=Math.min(rw?rw/width:Infinity,rh?rh/height:Infinity);
