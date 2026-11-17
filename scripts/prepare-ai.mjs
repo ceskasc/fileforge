@@ -27,8 +27,20 @@ if(!runtime)throw new Error('TensorFlow runtime missing: '+list.filter(p=>/tf.*m
 execFileSync('tar',['-xzf',root+'/tensorflow.tgz','-C',root,runtime,...(license?[license]:[])]);
 const upstreamRuntime=readFileSync(root+'/'+runtime),servedRuntime=makeCspCompatibleRuntime(upstreamRuntime.toString('utf8'));
 writeFileSync(root+'/vendor/tf.min.js',servedRuntime);writeFileSync(root+'/runtime/tf.cjs',servedRuntime);if(license)copyFileSync(root+'/'+license,root+'/vendor/tensorflow-LICENSE.txt');else writeFileSync(root+'/vendor/tensorflow-LICENSE.txt',await download('https://raw.githubusercontent.com/tensorflow/tfjs/tfjs-v4.22.0/LICENSE'));
+const wasmArchive=await download('https://registry.npmjs.org/@tensorflow/tfjs-backend-wasm/-/tfjs-backend-wasm-'+config.tensorflowVersion+'.tgz');
+const wasmIntegrity='sha512-'+createHash('sha512').update(wasmArchive).digest('base64');
+if(wasmIntegrity!==config.wasmIntegrity)throw new Error('WASM accelerator package integrity failed');
+writeFileSync(root+'/wasm.tgz',wasmArchive);
+const wasmFiles=['tf-backend-wasm.min.js','tfjs-backend-wasm.wasm','tfjs-backend-wasm-simd.wasm','tfjs-backend-wasm-threaded-simd.wasm'];
+const wasmRoot=root+'/wasm-package';mkdirSync(wasmRoot,{recursive:true});
+execFileSync('tar',['-xzf',root+'/wasm.tgz','-C',wasmRoot,...wasmFiles.map(name=>'package/dist/'+name)]);
+for(const name of wasmFiles){
+ const data=readFileSync(wasmRoot+'/package/dist/'+name);
+ writeFileSync(root+'/vendor/'+name,data);
+ records.push({path:'vendor/'+name,sha256:createHash('sha256').update(data).digest('hex'),bytes:data.length});
+}
 const modelLicense=await download('https://raw.githubusercontent.com/thekevinscott/UpscalerJS/'+config.revision+'/LICENSE');
 writeFileSync(root+'/models/LICENSE.txt',modelLicense);
 records.push({path:'vendor/tf.min.js',sha256:createHash('sha256').update(readFileSync(root+'/vendor/tf.min.js')).digest('hex'),bytes:readFileSync(root+'/vendor/tf.min.js').length});
-writeFileSync(root+'/ai-assets-manifest.json',JSON.stringify({tensorflow:config.tensorflowVersion,packageIntegrity:actual,modelRevision:config.revision,runtimeCompatibility:'fileforge-csp-v1',upstreamRuntimeSha256:createHash('sha256').update(upstreamRuntime).digest('hex'),assets:records},null,2));
-console.log(JSON.stringify({neuralModels:2,verifiedModelFiles:config.files.length,totalModelBytes:records.filter(r=>r.path.startsWith('models/')).reduce((n,r)=>n+r.bytes,0),tensorflow:config.tensorflowVersion,runtimeSelfHosted:true}));
+writeFileSync(root+'/ai-assets-manifest.json',JSON.stringify({tensorflow:config.tensorflowVersion,packageIntegrity:actual,wasmPackageIntegrity:wasmIntegrity,modelRevision:config.revision,runtimeCompatibility:'fileforge-csp-v1',upstreamRuntimeSha256:createHash('sha256').update(upstreamRuntime).digest('hex'),assets:records},null,2));
+console.log(JSON.stringify({neuralModels:3,verifiedModelFiles:config.files.length,totalModelBytes:records.filter(r=>r.path.startsWith('models/')).reduce((n,r)=>n+r.bytes,0),tensorflow:config.tensorflowVersion,runtimeSelfHosted:true,wasmSelfHosted:true}));

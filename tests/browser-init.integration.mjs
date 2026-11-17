@@ -43,6 +43,6 @@ test('the published runtime boots and runs real TensorFlow operations with strin
 test('the page keeps string evaluation and external scripts disallowed', () => {
   const html = readFileSync('index.html', 'utf8');
   const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
-  assert.match(csp, /script-src 'self';/);
+  assert.match(csp, /script-src 'self' 'wasm-unsafe-eval';/);
   assert.ok(!csp.includes("'unsafe-eval'"));
 });

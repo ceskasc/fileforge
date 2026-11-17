@@ -1,7 +1,8 @@
 import{ForgeError,LIMITS,inspectImage,targetDimensions,outputType,outputName,zipImages}from'./engine.mjs';
-import{processImage}from'./process.mjs';
+import{createImageProcessor}from'./image-client.mjs';
 import{messages}from'./i18n.mjs';
 const $=id=>document.getElementById(id),pause=()=>new Promise(r=>setTimeout(r,0));
+const processor=createImageProcessor();
 let language='tr';try{language=localStorage.getItem('fileforge-language')==='en'?'en':'tr';}catch{}
 const state={items:[],selected:null,mode:'convert',busy:false,adding:false,zipping:false,controller:null,zoom:false,panX:0,panY:0,counter:0,supported:new Set(['png','jpeg','webp']),feedback:null};
 const t=(key,vars={})=>Object.entries(vars).reduce((s,[name,v])=>s.replaceAll('{'+name+'}',String(v)),messages[language][key]||messages.tr[key]||key);
@@ -68,7 +69,7 @@ function renderPreview(){
 function updateControls(){
  const s=readSettings(),item=selected(),locked=state.busy||state.adding||state.zipping;
  $('settingsFields').disabled=locked;for(const id of ['width','height','lockAspect','allowUpscale'])$(id).disabled=locked||state.mode!=='resize';for(const id of ['enhancementMethod','scale','sharpness','denoise','contrast'])$(id).disabled=locked||state.mode!=='enhance';$('resizeFields').hidden=state.mode!=='resize';$('enhanceFields').hidden=state.mode!=='enhance';$('modeHint').textContent=t(state.mode+'Hint');
- $('sharpnessLabel').textContent=t(s.enhancementMethod==='classic'?'sharpness':'aiStrength');$('aiMethodHint').textContent=t(s.enhancementMethod==='ultra'?'ultraHint':s.enhancementMethod==='classic'?'classicHint':'photoHint');
+ $('sharpnessLabel').textContent=t(s.enhancementMethod==='classic'?'sharpness':'aiStrength');$('aiMethodHint').textContent=t(s.enhancementMethod==='ultra'?'ultraHint':s.enhancementMethod==='classic'?'classicHint':s.enhancementMethod==='fast'?'fastHint':'photoHint');
  const type=outputType(s.format,item?.meta.type||'image/jpeg');
  $('formatHint').textContent=t(type==='image/png'?'pngHint':type==='image/jpeg'?'jpegHint':'webpHint');
  const pngOnly=s.format==='png'||(s.format==='original'&&state.items.length>0&&state.items.every(i=>i.meta.type==='image/png'));
@@ -119,22 +120,12 @@ async function addFiles(files){
  if(errors.length){state.feedback=null;$('feedback').textContent=(count?t('added',{count})+'\n':'')+errors.slice(0,3).join('\n');$('feedback').classList.add('error');}else notice('added',{count});render();
 }
 async function workerProcess(file,settings,signal,onProgress){
- if(settings.mode==='enhance'&&settings.enhancementMethod!=='classic')return processImage(file,settings,{signal,onProgress});
- if(!('Worker'in window)||!('OffscreenCanvas'in window)||typeof createImageBitmap!=='function')return processImage(file,settings,{signal,onProgress});
- let worker;try{worker=new Worker(new URL('./image-worker.mjs',import.meta.url),{type:'module'});}catch{return processImage(file,settings,{signal,onProgress});}
- try{return await new Promise((resolve,reject)=>{
-  let timer;const cleanup=()=>{clearTimeout(timer);signal.removeEventListener('abort',abort);};
-  const abort=()=>{cleanup();worker.terminate();reject(new DOMException('Aborted','AbortError'));};
-  const watchdog=()=>{clearTimeout(timer);timer=setTimeout(()=>{cleanup();worker.terminate();reject(new ForgeError('PROCESS'));},120000);};
-  signal.addEventListener('abort',abort,{once:true});if(signal.aborted){abort();return;}
-  worker.onmessage=({data})=>{watchdog();if(data.kind==='progress')onProgress(data);else if(data.kind==='done'){cleanup();resolve(data.result);}else if(data.kind==='error'){cleanup();reject(new ForgeError(data.code));}};
-  worker.onerror=event=>{event.preventDefault();cleanup();const e=new ForgeError('CANVAS');e.workerFailure=true;reject(e);};watchdog();worker.postMessage({file,settings});
- });}catch(e){if(e.workerFailure||e.code==='CANVAS'||e.code==='DECODE'){worker.terminate();return processImage(file,settings,{signal,onProgress});}throw e;}finally{worker.terminate();}
+ return processor.process(file,settings,{signal,onProgress});
 }
 async function processAll(event){
  event.preventDefault();if(state.busy||state.adding||state.zipping||!state.items.length)return;if(!$('processingForm').reportValidity())return;
  const settings=readSettings(),signature=JSON.stringify(settings);state.controller=new AbortController();const signal=state.controller.signal;
- state.busy=true;$('progressBar').value=0;$('progressPercent').textContent='0%';$('progressArea').hidden=false;notice('processing');render();let completed=0,failures=0;
+ state.busy=true;$('progressBar').value=0;$('progressPercent').textContent='0%';$('progressText').textContent=t('stageDecode');$('progressArea').hidden=false;notice('processing');render();let completed=0,failures=0;
  for(let index=0;index<state.items.length;index++){
   if(signal.aborted)break;const item=state.items[index];item.status='processing';item.progress=0;item.error=null;renderQueue();let previous=-1;
   try{
@@ -192,7 +183,7 @@ document.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('
 document.addEventListener('drop',e=>{if(![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();dragDepth=0;$('dropArea').classList.remove('dragging');$('dropTitle').textContent=t('dropTitle');addFiles([...e.dataTransfer.files]);});
 $('workspace').addEventListener('dragenter',e=>{if(![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();dragDepth++;$('dropArea').classList.add('dragging');$('dropTitle').textContent=t('dropActive');});
 $('workspace').addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;$('dropArea').classList.remove('dragging');$('dropTitle').textContent=t('dropTitle');}});
-window.addEventListener('pagehide',e=>{if(!e.persisted){state.controller?.abort();state.items.forEach(release);}});
+window.addEventListener('pagehide',e=>{if(!e.persisted){state.controller?.abort();processor.dispose();state.items.forEach(release);}});
 translate();document.querySelector('meta[name="theme-color"]').content=document.documentElement.dataset.theme==='dark'?'#10141e':'#f7f6f2';
 (async()=>{
  const c=document.createElement('canvas');c.width=c.height=2;if(!c.getContext('2d')){notice('errorCANVAS',{},true);return;}

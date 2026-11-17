@@ -3,6 +3,16 @@
   "tensorflowVersion": "4.22.0",
   "files": [
     [
+      "fast",
+      "models/esrgan-slim/models/x2/model.json",
+      "c11c758e5d36c30c88b6b7e0df2bd502e19390a2"
+    ],
+    [
+      "fast",
+      "models/esrgan-slim/models/x2/group1-shard1of1.bin",
+      "8f9ba7a83679f41cd4b10d3bd0a3fb9111acde47"
+    ],
+    [
       "photo",
       "models/esrgan-medium/models/x2/model.json",
       "89c6206fdbaa732e49c6959720444e306b7ea206"
@@ -52,5 +62,6 @@
       "models/esrgan-thick/models/x2/group1-shard7of7.bin",
       "adb9112f2c7543536f7c9bf7e9f3d43d1b7a69e5"
     ]
-  ]
+  ],
+  "wasmIntegrity": "sha512-/IYhReRIp4jg/wYW0OwbbJZG8ON87mbz0PgkiP3CdcACRSvUN0h8rvC0O3YcDtkTQtFWF/tcXq/KlVDyV49wmA=="
 }

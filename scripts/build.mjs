@@ -23,5 +23,5 @@ for(const match of page.matchAll(/(?:src|href)="\.\/([^"]*)"/g)){
 }
 const paths=walk('public');
 for(const p of ['public/assets/og-card.png','public/assets/apple-touch-icon.png'])if(statSync(p).size<100)throw new Error('Missing image: '+p);
-const report={files:paths.length,bytes:paths.reduce((n,p)=>n+statSync(p).size,0),builtAt:new Date().toISOString(),runtimeDependencies:1,neuralModels:2};
+const report={files:paths.length,bytes:paths.reduce((n,p)=>n+statSync(p).size,0),builtAt:new Date().toISOString(),runtimeDependencies:2,neuralModels:3};
 writeFileSync('build-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));

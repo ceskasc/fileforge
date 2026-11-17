@@ -26,8 +26,10 @@ jobs:
         run: npm run test:browser-init
       - name: Image engine, processing and archive tests
         run: npm test
-      - name: Run actual trained Photo and Ultra models
+      - name: Run all three actual trained AI models
         run: npm run test:ai
+      - name: Verify WASM SIMD inference, output parity and speed
+        run: npm run test:wasm
       - name: Syntax, HTML and accessibility contracts
         run: npm run check
       - name: Install SVG rasterizer for sharing images
@@ -44,6 +46,7 @@ jobs:
             public/
             build-report.json
             ai-validation.json
+            ai-speed-validation.json
           include-hidden-files: true
           retention-days: 7
       - name: Upload Pages artifact
@@ -81,11 +84,11 @@ jobs:
             try{
               const page=await fetch(base+'?ai='+process.env.GITHUB_SHA);
               if(!page.ok||!(await page.text()).includes('enhancementMethod'))throw new Error('Updated page is not available');
-              for(const path of ['src/ai.mjs','models/photo/model.json','models/ultra/model.json','vendor/tf.min.js']){
+              for(const path of ['src/ai.mjs','models/fast/model.json','models/photo/model.json','models/ultra/model.json','vendor/tf.min.js','vendor/tf-backend-wasm.min.js','vendor/tfjs-backend-wasm-simd.wasm']){
                 const response=await fetch(new URL(path,base),{method:'HEAD'});
                 if(!response.ok)throw new Error(path+' HTTP '+response.status);
               }
-              console.log('Published AI page, runtime and both neural model manifests are reachable.');
+              console.log('Published AI page, accelerated runtime and all three neural model manifests are reachable.');
               process.exit(0);
             }catch(error){if(attempt===7)throw error;await new Promise(r=>setTimeout(r,5000));}
           }

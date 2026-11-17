@@ -3,7 +3,7 @@ import{AI_MODELS,registerModelLayers,createModelRunner}from'../src/ai-runtime.mj
 import{extractPatch}from'../src/ai-tiles.mjs';import{enhanceStream}from'../src/ai-stream.mjs';import{image}from'./fixtures.mjs';
 const require=createRequire(import.meta.url),tf=require('../.ai-cache/runtime/tf.cjs'),results=[];
 await tf.setBackend('cpu');await tf.ready();registerModelLayers(tf);
-for(const method of['photo','ultra'])test('real '+method+' weights run through the production tile engine with finite, nontrivial output',async()=>{
+for(const method of['fast','photo','ultra'])test('real '+method+' weights run through the production tile engine with finite, nontrivial output',async()=>{
  const json=JSON.parse(readFileSync('.ai-cache/models/'+method+'/model.json','utf8')),specs=json.weightsManifest.flatMap(g=>g.weights);
  const body=Buffer.concat(json.weightsManifest.flatMap(g=>g.paths.map(p=>readFileSync('.ai-cache/models/'+method+'/'+p))));
  const model=await tf.loadLayersModel(tf.io.fromMemory({modelTopology:json.modelTopology,weightSpecs:specs,weightData:body.buffer.slice(body.byteOffset,body.byteOffset+body.byteLength)}));

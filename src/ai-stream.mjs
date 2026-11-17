@@ -82,7 +82,7 @@ export async function enhanceStream(surface,runner,{scale=1,strength=.8,denoise=
         queue.push(tile);
         progress('memory');await tick();continue;
       }
-      if(!recovered&&runner?.recover){recovered=true;if(await runner.recover()){queue.push(tile);progress('cpu');await tick();continue;}}
+      if(!recovered&&runner?.recover){recovered=true;if(await runner.recover()){queue.push(tile);progress(runner.backend==='wasm'?'accelerated':'cpu');await tick();continue;}}
       const failure=new ForgeError(runner?'AI_MEMORY':'MEMORY');failure.cause=error;throw failure;
     }
   }

@@ -2,6 +2,7 @@ import { ForgeError } from './engine.mjs';
 import { isMemoryPressure } from './errors.mjs';
 const registered=new WeakSet();
 export const AI_MODELS=Object.freeze({
+  fast:{path:'fast/model.json',inputMax:255,outputMax:255,tileSize:128,padding:12},
   photo:{path:'photo/model.json',inputMax:255,outputMax:255,tileSize:96,padding:16},
   ultra:{path:'ultra/model.json',inputMax:1,outputMax:1,tileSize:64,padding:24}
 });
@@ -50,21 +51,45 @@ function abortable(promise,signal){
     if(signal.aborted)abort();
   });
 }
-let runtimePromise,currentModel=null,idleTimer;
+let runtimePromise,wasmPromise,currentModel=null,idleTimer;
 export function isTensorflowRuntime(tf){
   return !!(tf&&typeof tf.ready==='function'&&typeof tf.getBackend==='function'&&typeof tf.setBackend==='function'&&typeof tf.loadLayersModel==='function'&&typeof tf.tidy==='function'&&typeof tf.tensor4d==='function'&&typeof tf.layers?.Layer==='function'&&typeof tf.serialization?.registerClass==='function'&&typeof tf.io?.http==='function');
 }
 function loadRuntime(){
   if(runtimePromise)return runtimePromise;
-  runtimePromise=new Promise((resolve,reject)=>{
-    if(isTensorflowRuntime(globalThis.tf)){resolve(globalThis.tf);return;}
-    if(typeof document==='undefined'){reject(new ForgeError('AI_LOAD'));return;}
-    const script=document.createElement('script'),timer=setTimeout(()=>finish(new ForgeError('AI_LOAD')),120000);
-    const finish=error=>{clearTimeout(timer);script.onload=script.onerror=null;if(error){script.remove();reject(error);}else resolve(globalThis.tf);};
-    script.src=new URL('../vendor/tf.min.js',import.meta.url).href;script.async=true;
-    script.onload=()=>finish(isTensorflowRuntime(globalThis.tf)?null:new ForgeError('AI_LOAD'));script.onerror=()=>finish(new ForgeError('AI_LOAD'));document.head.append(script);
-  }).catch(e=>{runtimePromise=null;throw e;});
+  runtimePromise=(async()=>{
+    if(!isTensorflowRuntime(globalThis.tf))await import('../vendor/tf.min.js');
+    if(!isTensorflowRuntime(globalThis.tf))throw new ForgeError('AI_LOAD');
+    return globalThis.tf;
+  })().catch(error=>{runtimePromise=null;const failure=new ForgeError('AI_LOAD');failure.cause=error;throw failure;});
   return runtimePromise;
+}
+async function loadWasm(tf){
+  if(!wasmPromise)wasmPromise=(async()=>{
+    await import('../vendor/tf-backend-wasm.min.js');
+    if(typeof tf.wasm?.setWasmPaths!=='function')throw new ForgeError('AI_INIT');
+    // GitHub Pages cannot supply the isolation headers needed for shared-memory threads.
+    // SIMD still accelerates convolution without those headers or any worker shims.
+    tf.wasm.setThreadsCount(1);
+    const paths={};
+    for(const name of ['tfjs-backend-wasm.wasm','tfjs-backend-wasm-simd.wasm','tfjs-backend-wasm-threaded-simd.wasm']){
+      const url=new URL('../vendor/'+name,import.meta.url);url.search=new URL(import.meta.url).search;paths[name]=url.href;
+    }
+    tf.wasm.setWasmPaths(paths);
+  })().catch(error=>{wasmPromise=null;throw error;});
+  return wasmPromise;
+}
+/** Prefer vectorized native convolution to the slow JavaScript CPU fallback. */
+export async function selectBackend(tf,method,{loadAccelerator=()=>loadWasm(tf),exclude=[]}={}){
+  const order=['webgl','wasm','cpu'];
+  for(const backend of order){
+    if(exclude.includes(backend))continue;
+    try{
+      if(backend==='wasm')await loadAccelerator();
+      if(await tf.setBackend(backend)){await tf.ready();return backend;}
+    }catch{}
+  }
+  throw new ForgeError('AI_INIT');
 }
 export function releaseAIResources(){
   clearTimeout(idleTimer);
@@ -85,10 +110,7 @@ export async function getBrowserRunner(method,{signal,onProgress=()=>{}}={}){
   const tf=await abortable(loadRuntime(),signal);check(signal);
   const compact=lowMemoryDevice();setMemoryBudget(tf,compact);
   try{
-    if(!tf.getBackend()){
-      let gpu=false;try{gpu=await tf.setBackend('webgl');}catch{}
-      if(!gpu)await tf.setBackend('cpu');
-    }
+    if(!tf.getBackend())await selectBackend(tf,method);
     await tf.ready();check(signal);registerModelLayers(tf);
   }catch(error){if(error.name==='AbortError')throw error;const failure=new ForgeError(isMemoryPressure(error)?'AI_MEMORY':'AI_INIT');failure.cause=error;throw failure;}
   async function loadModel(){
@@ -102,16 +124,16 @@ export async function getBrowserRunner(method,{signal,onProgress=()=>{}}={}){
     }catch(error){if(error.name==='AbortError')throw error;const failure=new ForgeError(isMemoryPressure(error)?'AI_MEMORY':'AI_LOAD');failure.cause=error;throw failure;}
   }
   let model=await loadModel(),backend=tf.getBackend(),active=createModelRunner(tf,model,definition),recovered=false;
-  if(backend==='cpu')onProgress({stage:'cpu',value:.2,backend});
+  onProgress({stage:backend==='cpu'?'cpu':backend==='wasm'?'accelerated':'model',value:.2,backend});
   return{
     get backend(){return backend;},
-    tileSize:backend==='cpu'?24:compact?(method==='ultra'?24:48):definition.tileSize,
+    tileSize:backend==='cpu'?24:backend==='wasm'?(method==='fast'?96:method==='photo'?64:32):compact?(method==='fast'?96:method==='ultra'?24:48):definition.tileSize,
     padding:definition.padding,
     predict(...args){return active.predict(...args);},
     async recover(){
       check(signal);if(backend!=='webgl'||recovered)return false;recovered=true;
-      releaseAIResources();await tf.setBackend('cpu');try{tf.removeBackend('webgl');}catch{}
-      await tf.ready();check(signal);backend='cpu';model=await loadModel();active=createModelRunner(tf,model,definition);return true;
+      releaseAIResources();backend=await selectBackend(tf,method,{exclude:['webgl']});try{tf.removeBackend('webgl');}catch{}
+      check(signal);model=await loadModel();active=createModelRunner(tf,model,definition);return true;
     },
     release(){clearTimeout(idleTimer);idleTimer=setTimeout(releaseAIResources,30000);}
   };
