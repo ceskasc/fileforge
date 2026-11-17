@@ -84,7 +84,7 @@ jobs:
             try{
               const page=await fetch(base+'?ai='+process.env.GITHUB_SHA);
               if(!page.ok||!(await page.text()).includes('enhancementMethod'))throw new Error('Updated page is not available');
-              for(const path of ['src/ai.mjs','models/fast/model.json','models/photo/model.json','models/ultra/model.json','vendor/tf.min.js','vendor/tf-backend-wasm.min.js','vendor/tfjs-backend-wasm-simd.wasm']){
+              for(const path of ['src/ai.mjs','models/fast/model.json','models/restore/model.json','models/ultra/model.json','vendor/tf.min.js','vendor/tf-backend-wasm.min.js','vendor/tfjs-backend-wasm-simd.wasm']){
                 const response=await fetch(new URL(path,base),{method:'HEAD'});
                 if(!response.ok)throw new Error(path+' HTTP '+response.status);
               }

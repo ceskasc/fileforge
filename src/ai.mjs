@@ -5,7 +5,7 @@ export async function enhanceCanvas(image,width,height,output,settings,{signal,o
   const ai=settings.enhancementMethod!=='classic';
   let runner=null,surface=null;
   try{
-    if(ai)runner=await getBrowserRunner(settings.enhancementMethod||'fast',{signal,onProgress});
+    if(ai)runner=await getBrowserRunner(settings.enhancementMethod||'photo',{signal,onProgress});
     surface=createCanvasSurface(image,width,height,output,{type:settings.outputType,background:settings.background,contrast:settings.contrast});
     return await enhanceStream(surface,runner,{
       scale:Number(settings.scale),strength:Number(settings.sharpness)/100,

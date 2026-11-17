@@ -24,8 +24,8 @@ const tf=context.tf;registerModelLayers(tf);tf.wasm.setThreadsCount(1);
 tf.wasm.setWasmPaths('https://fileforge.example/vendor/');
 const results=[];
 async function loadModel(method){
-  const json=JSON.parse(readFileSync('.ai-cache/models/'+method+'/model.json','utf8'));
-  const body=Buffer.concat(json.weightsManifest.flatMap(g=>g.paths.map(p=>readFileSync('.ai-cache/models/'+method+'/'+p))));
+  const dir='.ai-cache/models/'+AI_MODELS[method].path.replace(/model\.json$/,''),json=JSON.parse(readFileSync(dir+'model.json','utf8'));
+  const body=Buffer.concat(json.weightsManifest.flatMap(g=>g.paths.map(p=>readFileSync(dir+p))));
   // TF's legacy serializer uses instanceof Array: deserialize inside its own realm.
   context.modelJSON=JSON.stringify(json);context.weightBytes=body;
   return vm.runInContext(`(async()=>{
@@ -39,7 +39,7 @@ for(const method of ['fast','photo','ultra'])test('real '+method+' model runs on
   let model=await loadModel(method);
   const rgb=Float32Array.from({length:16*16*3},(_,i)=>48+(i*17)%160);
   const before=tf.memory().numTensors,runner=createModelRunner(tf,model,AI_MODELS[method]);
-  const warm=await runner.predict(rgb,16,16);assert.equal(warm.length,32*32*3);
+  const warm=await runner.predict(rgb,16,16);assert.equal(warm.length,16*16*3*(AI_MODELS[method].nativeScale||2)**2);
   const start=performance.now(),output=await runner.predict(rgb,16,16),wasmMs=performance.now()-start;
   assert.equal(tf.memory().numTensors,before);model.dispose();
   await tf.setBackend('cpu');await tf.ready();model=await loadModel(method);
@@ -52,6 +52,21 @@ for(const method of ['fast','photo','ultra'])test('real '+method+' model runs on
   assert.ok(mean>25&&mean<235,'Output must not collapse to black or white');
   assert.equal(tf.memory().numTensors,0);
   results.push({method,wasmMs,cpuMs,speedup:cpuMs/wasmMs,meanAbsoluteErrorVsCpu:error,meanRGB:mean});
+});
+test('restoration conversion preserves original RGB order, PReLU and 4x nearest residual',async()=>{
+  await tf.setBackend('wasm');await tf.ready();
+  const fixture=JSON.parse(readFileSync('tests/restoration-reference.json','utf8'));
+  const bytes=Buffer.from(fixture.inputRgb,'base64'),values=Float32Array.from(bytes,n=>n/255),raw=Buffer.from(fixture.outputFloat32LE,'base64');
+  const expected=new Float32Array(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength));
+  const model=await loadModel('photo');
+  let output;
+  try{
+    output=tf.tidy(()=>model.predict(tf.tensor4d(values,[1,4,4,3])));
+    const actual=await output.data();assert.equal(actual.length,expected.length);
+    let maxError=0;for(let i=0;i<actual.length;i++)maxError=Math.max(maxError,Math.abs(actual[i]-expected[i]));
+    assert.ok(maxError<.0001,'Must match independent original-layout reference; max error '+maxError);
+  }finally{output?.dispose();model.dispose();}
+  assert.equal(tf.memory().numTensors,0);
 });
 test.after(()=>{
   writeFileSync('ai-speed-validation.json',JSON.stringify({input:[16,16],simd:tf.env().get('WASM_HAS_SIMD_SUPPORT'),javascriptStringEvaluation:false,realTrainedWeights:true,results},null,2));

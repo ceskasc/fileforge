@@ -1,6 +1,6 @@
 {
   "name": "fileforge",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "type": "module",
   "description": "Private-by-design local image studio, by Sad\u0131k Can \u00c7e\u015fka",

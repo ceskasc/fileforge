@@ -3,7 +3,7 @@ import { isMemoryPressure } from './errors.mjs';
 const registered=new WeakSet();
 export const AI_MODELS=Object.freeze({
   fast:{path:'fast/model.json',inputMax:255,outputMax:255,tileSize:128,padding:12},
-  photo:{path:'photo/model.json',inputMax:255,outputMax:255,tileSize:96,padding:16},
+  photo:{path:'restore/model.json',inputMax:1,outputMax:1,nativeScale:4,tileSize:64,padding:16},
   ultra:{path:'ultra/model.json',inputMax:1,outputMax:1,tileSize:64,padding:24}
 });
 /** Serialization adapters for the published ESRGAN weights. */
@@ -21,10 +21,22 @@ export function registerModelLayers(tf){
     computeOutputShape(s){return[s[0],s[1]==null?null:s[1]*2,s[2]==null?null:s[2]*2,s[3]==null?null:s[3]/4];}
     static className='PixelShuffle2x';
   }
-  tf.serialization.registerClass(MultiplyBeta);tf.serialization.registerClass(PixelShuffle2x);registered.add(tf);
+  class PixelShuffle4x extends tf.layers.Layer{
+    call(inputs){return tf.depthToSpace(Array.isArray(inputs)?inputs[0]:inputs,4,'NHWC');}
+    computeOutputShape(s){return[s[0],s[1]==null?null:s[1]*4,s[2]==null?null:s[2]*4,s[3]/16];}
+    static className='PixelShuffle4x';
+  }
+  class Nearest4x extends tf.layers.Layer{
+    call(inputs){const t=Array.isArray(inputs)?inputs[0]:inputs;return tf.image.resizeNearestNeighbor(t,[t.shape[1]*4,t.shape[2]*4],false);}
+    computeOutputShape(s){return[s[0],s[1]==null?null:s[1]*4,s[2]==null?null:s[2]*4,s[3]];}
+    static className='Nearest4x';
+  }
+  for(const layer of [MultiplyBeta,PixelShuffle2x,PixelShuffle4x,Nearest4x])tf.serialization.registerClass(layer);
+  registered.add(tf);
 }
 export function createModelRunner(tf,model,definition){
-  return {async predict(rgb,width,height){
+  const nativeScale=definition.nativeScale||2;
+  return {nativeScale,async predict(rgb,width,height){
     let prediction;
     try{
       prediction=tf.tidy(()=>{
@@ -33,7 +45,7 @@ export function createModelRunner(tf,model,definition){
         const raw=model.predict(input),result=Array.isArray(raw)?raw[0]:raw;
         return definition.outputMax===1?result.mul(255):result;
       });
-      if(prediction.rank!==4||prediction.shape[0]!==1||prediction.shape[1]!==height*2||prediction.shape[2]!==width*2||prediction.shape[3]!==3)throw new ForgeError('AI_INFERENCE');
+      if(prediction.rank!==4||prediction.shape[0]!==1||prediction.shape[1]!==height*nativeScale||prediction.shape[2]!==width*nativeScale||prediction.shape[3]!==3)throw new ForgeError('AI_INFERENCE');
       const values=await prediction.data(),output=new Uint8ClampedArray(values.length);
       for(let i=0;i<values.length;i++){if(!Number.isFinite(values[i]))throw new ForgeError('AI_INFERENCE');output[i]=values[i];}
       return output;
@@ -116,7 +128,8 @@ export async function getBrowserRunner(method,{signal,onProgress=()=>{}}={}){
   async function loadModel(){
     if(currentModel?.key===method&&currentModel.backend===tf.getBackend())return currentModel.model;
     releaseAIResources();
-    const url=new URL('../models/'+definition.path,import.meta.url).href;
+    const modelURL=new URL('../models/'+definition.path,import.meta.url);modelURL.search=new URL(import.meta.url).search;
+    const url=modelURL.href;
     try{
       const model=await tf.loadLayersModel(tf.io.http(url,{requestInit:{signal,credentials:'omit',cache:'force-cache'},onProgress:n=>onProgress({stage:'model',value:.11+Math.min(1,Math.max(0,n))*.08})}));
       if(signal?.aborted){model.dispose();check(signal);}
@@ -127,6 +140,7 @@ export async function getBrowserRunner(method,{signal,onProgress=()=>{}}={}){
   onProgress({stage:backend==='cpu'?'cpu':backend==='wasm'?'accelerated':'model',value:.2,backend});
   return{
     get backend(){return backend;},
+    nativeScale:definition.nativeScale||2,
     tileSize:backend==='cpu'?24:backend==='wasm'?(method==='fast'?96:method==='photo'?64:32):compact?(method==='fast'?96:method==='ultra'?24:48):definition.tileSize,
     padding:definition.padding,
     predict(...args){return active.predict(...args);},

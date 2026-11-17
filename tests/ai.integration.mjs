@@ -4,8 +4,8 @@ import{extractPatch}from'../src/ai-tiles.mjs';import{enhanceStream}from'../src/a
 const require=createRequire(import.meta.url),tf=require('../.ai-cache/runtime/tf.cjs'),results=[];
 await tf.setBackend('cpu');await tf.ready();registerModelLayers(tf);
 for(const method of['fast','photo','ultra'])test('real '+method+' weights run through the production tile engine with finite, nontrivial output',async()=>{
- const json=JSON.parse(readFileSync('.ai-cache/models/'+method+'/model.json','utf8')),specs=json.weightsManifest.flatMap(g=>g.weights);
- const body=Buffer.concat(json.weightsManifest.flatMap(g=>g.paths.map(p=>readFileSync('.ai-cache/models/'+method+'/'+p))));
+ const dir='.ai-cache/models/'+AI_MODELS[method].path.replace(/model\.json$/,''),json=JSON.parse(readFileSync(dir+'model.json','utf8')),specs=json.weightsManifest.flatMap(g=>g.weights);
+ const body=Buffer.concat(json.weightsManifest.flatMap(g=>g.paths.map(p=>readFileSync(dir+p))));
  const model=await tf.loadLayersModel(tf.io.fromMemory({modelTopology:json.modelTopology,weightSpecs:specs,weightData:body.buffer.slice(body.byteOffset,body.byteOffset+body.byteLength)}));
  const before=tf.memory().numTensors,start=Date.now();
  try{
@@ -32,7 +32,7 @@ for(const method of['fast','photo','ultra'])test('real '+method+' weights run th
   assert.ok(mean>30&&mean<230,'Input/output normalization must not collapse to black or white');
   assert.equal(opaque,144);assert.equal(tf.memory().numTensors,before,'Inference tensors must be released');
   const second=await runner.predict(new Float32Array(4*4*3).fill(AI_MODELS[method].inputMax===1?128:128),4,4);
-  assert.equal(second.length,8*8*3);assert.equal(tf.memory().numTensors,before);
+  assert.equal(second.length,4*4*3*(AI_MODELS[method].nativeScale||2)**2);assert.equal(tf.memory().numTensors,before);
   results.push({method,parameters:model.countParams(),output:[out.width,out.height],meanRGB:mean,meanAbsoluteDifferenceFromNearest:difference,inferenceMs:Date.now()-start,tensorLeak:tf.memory().numTensors-before});
  }finally{model.dispose();}
 });

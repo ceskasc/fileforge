@@ -13,7 +13,7 @@ const icon=name=>{const s=document.createElementNS('http://www.w3.org/2000/svg',
 function notice(key,vars={},error=false){state.feedback={key,vars,error};$('feedback').textContent=t(key,vars);$('feedback').classList.toggle('error',error);}
 const errorMessage=code=>t('error'+(code||'PROCESS'));
 function readSettings(){return{mode:state.mode,enhancementMethod:$('enhancementMethod').value,format:$('format').value,quality:Number($('quality').value),width:$('width').value,height:$('height').value,lockAspect:$('lockAspect').checked,allowUpscale:$('allowUpscale').checked,scale:Number($('scale').value),sharpness:Number($('sharpness').value),denoise:Number($('denoise').value),contrast:$('contrast').checked,background:$('background').value};}
-const strengthPresets=()=>$('enhancementMethod').value==='classic'?{gentle:[30,20],balanced:[55,40],strong:[80,65]}:{gentle:[60,5],balanced:[80,12],strong:[100,20]};
+const strengthPresets=()=>$('enhancementMethod').value==='classic'?{gentle:[30,20],balanced:[55,40],strong:[80,65]}:$('enhancementMethod').value==='photo'?{gentle:[65,0],balanced:[90,0],strong:[100,0]}:{gentle:[60,0],balanced:[80,0],strong:[100,0]};
 const settingsKey=()=>JSON.stringify(readSettings());
 function release(item){URL.revokeObjectURL(item.url);if(item.outputUrl)URL.revokeObjectURL(item.outputUrl);}
 function statusText(item){

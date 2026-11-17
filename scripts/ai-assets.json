@@ -13,16 +13,6 @@
       "8f9ba7a83679f41cd4b10d3bd0a3fb9111acde47"
     ],
     [
-      "photo",
-      "models/esrgan-medium/models/x2/model.json",
-      "89c6206fdbaa732e49c6959720444e306b7ea206"
-    ],
-    [
-      "photo",
-      "models/esrgan-medium/models/x2/group1-shard1of1.bin",
-      "1566be7f9a3f0fa12f3d2d2d74bb22879390f14a"
-    ],
-    [
       "ultra",
       "models/esrgan-thick/models/x2/model.json",
       "429ab9891ecb707d4e3eee49b5030d6d59369666"
@@ -63,5 +53,11 @@
       "adb9112f2c7543536f7c9bf7e9f3d43d1b7a69e5"
     ]
   ],
-  "wasmIntegrity": "sha512-/IYhReRIp4jg/wYW0OwbbJZG8ON87mbz0PgkiP3CdcACRSvUN0h8rvC0O3YcDtkTQtFWF/tcXq/KlVDyV49wmA=="
+  "wasmIntegrity": "sha512-/IYhReRIp4jg/wYW0OwbbJZG8ON87mbz0PgkiP3CdcACRSvUN0h8rvC0O3YcDtkTQtFWF/tcXq/KlVDyV49wmA==",
+  "restoration": {
+    "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth",
+    "sha256": "8dc7edb9ac80ccdc30c3a5dca6616509367f05fbc184ad95b731f05bece96292",
+    "revision": "685d429c81888252bdb10f56c7754baededc3823",
+    "name": "RealESRGAN general x4v3"
+  }
 }

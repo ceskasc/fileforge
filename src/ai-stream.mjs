@@ -58,10 +58,11 @@ export async function enhanceStream(surface,runner,{scale=1,strength=.8,denoise=
         const rgb=new Float32Array(pw*ph*3);
         for(let p=0,q=0;p<clean.length;p+=4,q+=3){const a=clean[p+3]/255;for(let c=0;c<3;c++)rgb[q+c]=clean[p+c]*a+255*(1-a);}
         const predicted=await runner.predict(rgb,pw,ph);check(signal);
-        if(!(predicted instanceof Uint8ClampedArray)||predicted.length!==pw*ph*12)throw new ForgeError('AI_INFERENCE');
-        neural=new Uint8ClampedArray(pw*ph*16);
+        const nativeScale=runner.nativeScale||2;
+        if(!(predicted instanceof Uint8ClampedArray)||predicted.length!==pw*ph*3*nativeScale*nativeScale)throw new ForgeError('AI_INFERENCE');
+        neural=new Uint8ClampedArray(pw*ph*4*nativeScale*nativeScale);
         for(let p=0,q=0;p<neural.length;p+=4,q+=3){neural[p]=predicted[q];neural[p+1]=predicted[q+1];neural[p+2]=predicted[q+2];neural[p+3]=255;}
-        if(scale===1)neural=await resizePixels(neural,pw*2,ph*2,pw,ph,()=>{},async()=>{check(signal);await tick();});
+        if(scale!==nativeScale)neural=await resizePixels(neural,pw*nativeScale,ph*nativeScale,pw*scale,ph*scale,()=>{},async()=>{check(signal);await tick();});
       }
       if(scale===2)baseline=await resizePixels(clean,pw,ph,pw*2,ph*2,()=>{},async()=>{check(signal);await tick();});
       const ow=tile.width*scale,oh=tile.height*scale,rowWidth=pw*scale,offset=tile.padding*scale,result=new Uint8ClampedArray(ow*oh*4);

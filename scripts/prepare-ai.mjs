@@ -1,6 +1,7 @@
 import{mkdirSync,readFileSync,writeFileSync,copyFileSync,existsSync}from'node:fs';
 import{createHash}from'node:crypto';import{execFileSync}from'node:child_process';import{basename,join}from'node:path';
 import{makeCspCompatibleRuntime}from'./csp-runtime.mjs';
+import{prepareRestorationModel}from'./restore-model.mjs';
 const config=JSON.parse(readFileSync('scripts/ai-assets.json','utf8')),root='.ai-cache',records=[];
 mkdirSync(root+'/models',{recursive:true});mkdirSync(root+'/vendor',{recursive:true});mkdirSync(root+'/runtime',{recursive:true});
 async function download(url){
@@ -41,6 +42,13 @@ for(const name of wasmFiles){
 }
 const modelLicense=await download('https://raw.githubusercontent.com/thekevinscott/UpscalerJS/'+config.revision+'/LICENSE');
 writeFileSync(root+'/models/LICENSE.txt',modelLicense);
+const checkpointPath=root+'/realesr-general-x4v3.pth';
+const checkpoint=existsSync(checkpointPath)?readFileSync(checkpointPath):await download(config.restoration.url);
+if(createHash('sha256').update(checkpoint).digest('hex')!==config.restoration.sha256)throw new Error('Restoration checkpoint integrity failed');
+writeFileSync(checkpointPath,checkpoint);
+execFileSync('python3',['scripts/convert-restoration.py',checkpointPath,root+'/runtime/srvgg-weights',config.restoration.sha256],{stdio:'inherit'});
+records.push(...await prepareRestorationModel(root));
+writeFileSync(root+'/models/restore/LICENSE.txt',await download('https://raw.githubusercontent.com/xinntao/Real-ESRGAN/'+config.restoration.revision+'/LICENSE'));
 records.push({path:'vendor/tf.min.js',sha256:createHash('sha256').update(readFileSync(root+'/vendor/tf.min.js')).digest('hex'),bytes:readFileSync(root+'/vendor/tf.min.js').length});
-writeFileSync(root+'/ai-assets-manifest.json',JSON.stringify({tensorflow:config.tensorflowVersion,packageIntegrity:actual,wasmPackageIntegrity:wasmIntegrity,modelRevision:config.revision,runtimeCompatibility:'fileforge-csp-v1',upstreamRuntimeSha256:createHash('sha256').update(upstreamRuntime).digest('hex'),assets:records},null,2));
+writeFileSync(root+'/ai-assets-manifest.json',JSON.stringify({tensorflow:config.tensorflowVersion,packageIntegrity:actual,wasmPackageIntegrity:wasmIntegrity,modelRevision:config.revision,restoration:{...config.restoration,conversion:'fileforge-srvgg-v1'},runtimeCompatibility:'fileforge-csp-v1',upstreamRuntimeSha256:createHash('sha256').update(upstreamRuntime).digest('hex'),assets:records},null,2));
 console.log(JSON.stringify({neuralModels:3,verifiedModelFiles:config.files.length,totalModelBytes:records.filter(r=>r.path.startsWith('models/')).reduce((n,r)=>n+r.bytes,0),tensorflow:config.tensorflowVersion,runtimeSelfHosted:true,wasmSelfHosted:true}));
