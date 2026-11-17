@@ -1,6 +1,6 @@
 {
   "name": "fileforge",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "description": "Private-by-design local image studio, by Sadık Can Çeşka",
@@ -9,7 +9,8 @@
     "check": "node scripts/check.mjs",
     "build": "node scripts/build.mjs",
     "prepare:ai": "node scripts/prepare-ai.mjs",
-    "test:ai": "node --test tests/ai.integration.mjs"
+    "test:ai": "node --test tests/ai.integration.mjs",
+    "test:browser-init": "node --test tests/browser-init.integration.mjs"
   },
   "engines": {
     "node": ">=22"

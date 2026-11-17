@@ -22,6 +22,8 @@ jobs:
           node-version: '22'
       - name: Prepare pinned, integrity-checked neural models
         run: npm run prepare:ai
+      - name: Verify browser AI startup with string evaluation disabled
+        run: npm run test:browser-init
       - name: Image engine, processing and archive tests
         run: npm test
       - name: Run actual trained Photo and Ultra models

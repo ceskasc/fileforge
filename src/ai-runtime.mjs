@@ -51,15 +51,18 @@ function abortable(promise,signal){
   });
 }
 let runtimePromise,currentModel=null,idleTimer;
+export function isTensorflowRuntime(tf){
+  return !!(tf&&typeof tf.ready==='function'&&typeof tf.getBackend==='function'&&typeof tf.setBackend==='function'&&typeof tf.loadLayersModel==='function'&&typeof tf.tidy==='function'&&typeof tf.tensor4d==='function'&&typeof tf.layers?.Layer==='function'&&typeof tf.serialization?.registerClass==='function'&&typeof tf.io?.http==='function');
+}
 function loadRuntime(){
   if(runtimePromise)return runtimePromise;
   runtimePromise=new Promise((resolve,reject)=>{
-    if(globalThis.tf){resolve(globalThis.tf);return;}
+    if(isTensorflowRuntime(globalThis.tf)){resolve(globalThis.tf);return;}
     if(typeof document==='undefined'){reject(new ForgeError('AI_LOAD'));return;}
     const script=document.createElement('script'),timer=setTimeout(()=>finish(new ForgeError('AI_LOAD')),120000);
     const finish=error=>{clearTimeout(timer);script.onload=script.onerror=null;if(error){script.remove();reject(error);}else resolve(globalThis.tf);};
     script.src=new URL('../vendor/tf.min.js',import.meta.url).href;script.async=true;
-    script.onload=()=>finish(globalThis.tf?null:new ForgeError('AI_LOAD'));script.onerror=()=>finish(new ForgeError('AI_LOAD'));document.head.append(script);
+    script.onload=()=>finish(isTensorflowRuntime(globalThis.tf)?null:new ForgeError('AI_LOAD'));script.onerror=()=>finish(new ForgeError('AI_LOAD'));document.head.append(script);
   }).catch(e=>{runtimePromise=null;throw e;});
   return runtimePromise;
 }

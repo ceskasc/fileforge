@@ -1,5 +1,6 @@
 import{mkdirSync,readFileSync,writeFileSync,copyFileSync,existsSync}from'node:fs';
 import{createHash}from'node:crypto';import{execFileSync}from'node:child_process';import{basename,join}from'node:path';
+import{makeCspCompatibleRuntime}from'./csp-runtime.mjs';
 const config=JSON.parse(readFileSync('scripts/ai-assets.json','utf8')),root='.ai-cache',records=[];
 mkdirSync(root+'/models',{recursive:true});mkdirSync(root+'/vendor',{recursive:true});mkdirSync(root+'/runtime',{recursive:true});
 async function download(url){
@@ -24,9 +25,10 @@ const list=execFileSync('tar',['-tzf',root+'/tensorflow.tgz'],{encoding:'utf8'})
 const runtime=list.find(p=>p==='package/dist/tf.min.js'),license=list.find(p=>/^package\/LICENSE(?:\.txt)?$/i.test(p));
 if(!runtime)throw new Error('TensorFlow runtime missing: '+list.filter(p=>/tf.*min|license/i.test(p)).join(', '));
 execFileSync('tar',['-xzf',root+'/tensorflow.tgz','-C',root,runtime,...(license?[license]:[])]);
-copyFileSync(root+'/'+runtime,root+'/vendor/tf.min.js');copyFileSync(root+'/'+runtime,root+'/runtime/tf.cjs');if(license)copyFileSync(root+'/'+license,root+'/vendor/tensorflow-LICENSE.txt');else writeFileSync(root+'/vendor/tensorflow-LICENSE.txt',await download('https://raw.githubusercontent.com/tensorflow/tfjs/tfjs-v4.22.0/LICENSE'));
+const upstreamRuntime=readFileSync(root+'/'+runtime),servedRuntime=makeCspCompatibleRuntime(upstreamRuntime.toString('utf8'));
+writeFileSync(root+'/vendor/tf.min.js',servedRuntime);writeFileSync(root+'/runtime/tf.cjs',servedRuntime);if(license)copyFileSync(root+'/'+license,root+'/vendor/tensorflow-LICENSE.txt');else writeFileSync(root+'/vendor/tensorflow-LICENSE.txt',await download('https://raw.githubusercontent.com/tensorflow/tfjs/tfjs-v4.22.0/LICENSE'));
 const modelLicense=await download('https://raw.githubusercontent.com/thekevinscott/UpscalerJS/'+config.revision+'/LICENSE');
 writeFileSync(root+'/models/LICENSE.txt',modelLicense);
 records.push({path:'vendor/tf.min.js',sha256:createHash('sha256').update(readFileSync(root+'/vendor/tf.min.js')).digest('hex'),bytes:readFileSync(root+'/vendor/tf.min.js').length});
-writeFileSync(root+'/ai-assets-manifest.json',JSON.stringify({tensorflow:config.tensorflowVersion,packageIntegrity:actual,modelRevision:config.revision,assets:records},null,2));
+writeFileSync(root+'/ai-assets-manifest.json',JSON.stringify({tensorflow:config.tensorflowVersion,packageIntegrity:actual,modelRevision:config.revision,runtimeCompatibility:'fileforge-csp-v1',upstreamRuntimeSha256:createHash('sha256').update(upstreamRuntime).digest('hex'),assets:records},null,2));
 console.log(JSON.stringify({neuralModels:2,verifiedModelFiles:config.files.length,totalModelBytes:records.filter(r=>r.path.startsWith('models/')).reduce((n,r)=>n+r.bytes,0),tensorflow:config.tensorflowVersion,runtimeSelfHosted:true}));

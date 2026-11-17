@@ -36,6 +36,7 @@ Node.js 22+, Python 3 ve SVG paylaşım görselleri için librsvg gerekir. npm b
 
 ```sh
 npm run prepare:ai
+npm run test:browser-init
 npm test
 npm run test:ai
 npm run check
@@ -46,7 +47,7 @@ python3 -m http.server --directory public 8080
 
 `prepare:ai`, TensorFlow.js **4.22.0** npm tarballının SHA-512 bütünlüğünü ve her model dosyasının sabit Git blob SHA değerini doğrular. Kaynak revizyonu `6d074fb5835a6c659a19c83123beab8c3f28beac` olarak sabittir. Yayımlanan `ai-assets-manifest.json` SHA-256 özetlerini içerir. Lisanslar ve kaynaklar: [THIRD_PARTY.md](THIRD_PARTY.md).
 
-Birim testleri dosya doğrulama, geometri, şeffaflık, filtreler, ZIP uyumluluğu, neural parça birleştirme, iptal ve ilerlemeyi kapsar. Bellek regresyon testleri 12 MP görsellerde tam kare piksel okumasını reddeden bir Canvas sınırı, parça boyutunun düşürülerek tekrar denenmesi, CPU kurtarma ve farklı teknik hataların bellek hatası olarak gösterilmemesini doğrular. `test:ai`, **her iki gerçek eğitilmiş modeli** TensorFlow CPU üzerinde üretimdeki tahmin ve birleştirme koduyla çalıştırır; çıktı şekli, normalizasyon, sonucun basit büyütmeden farklı olması ve tensor belleğinin serbest bırakılması doğrulanır. Ölçümler `ai-validation.json` içinde tutulur. Bu kontroller gerçek mobil WebGL veya görsel tarayıcı kontrolü yerine geçmez; hazırlama oturumunda tarayıcı önizlemesi kullanılamamıştır.
+Birim testleri dosya doğrulama, geometri, şeffaflık, filtreler, ZIP uyumluluğu, neural parça birleştirme, iptal ve ilerlemeyi kapsar. Bellek regresyon testleri 12 MP görsellerde tam kare piksel okumasını reddeden bir Canvas sınırı, parça boyutunun düşürülerek tekrar denenmesi, CPU kurtarma ve farklı teknik hataların bellek hatası olarak gösterilmemesini doğrular. `test:ai`, **her iki gerçek eğitilmiş modeli** TensorFlow CPU üzerinde üretimdeki tahmin ve birleştirme koduyla çalıştırır; çıktı şekli, normalizasyon, sonucun basit büyütmeden farklı olması ve tensor belleğinin serbest bırakılması doğrulanır. Ölçümler `ai-validation.json` içinde tutulur. Bu kontroller gerçek mobil WebGL veya görsel tarayıcı kontrolü yerine geçmez.
 
 ## Yayın
 
@@ -57,3 +58,7 @@ GitHub Pages kaynağı **GitHub Actions** olmalıdır. Main üzerindeki değişi
 `src/engine.mjs`: piksel/geometri/ZIP. `src/process.mjs`: kodlama hattı. `src/ai-tiles.mjs`: paylı neural işleme ve alfa koruması. `src/ai-runtime.mjs`: TensorFlow, model ve backend yönetimi. `src/ai.mjs`: iyileştirme akışı. `src/app.mjs`: arayüz ve önizleme.
 
 MIT. Fontların SIL OFL lisansları ve AI bileşenlerinin kendi lisansları korunur.
+
+## Tarayıcıda AI başlangıcı
+
+TensorFlow tarayıcı paketi, kod dizgisi çalıştırması yasak olan bir ortamda ayrıca sınanır. Bu test önce eski paketteki gerçek başlangıç hatasını yeniden üretir; ardından yayımlanan uyumlu paketin başlamasını ve gerçek TensorFlow işlemlerini doğrular. Kısmen yüklenmiş bir tf nesnesi hazır sayılmaz. Sitenin CSP ayarı script-src self olarak korunur; unsafe-eval eklenmez. Paket bütünlüğü, uyumluluk dönüşümü ve kaynak/yayın SHA-256 özetleri THIRD_PARTY.md ve ai-assets-manifest.json içinde açıklanır.
