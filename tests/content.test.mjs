@@ -23,3 +23,14 @@ test('the local runtime is self-hosted and uploads require the configured server
   if(m[1].endsWith('.png'))continue;assert.ok(existsSync(new URL('../'+m[1],import.meta.url)),m[1]);
  }
 });
+
+test('the pixel companion is self-hosted, animated and accessible with reduced motion',()=>{
+ assert.match(html,/<picture class="hero-character">/);
+ assert.match(html,/src="\.\/assets\/fileforge-couple\.gif"/);
+ assert.match(html,/media="\(prefers-reduced-motion: reduce\)" srcset="\.\/assets\/fileforge-couple-still\.png"/);
+ const gif=readFileSync(new URL('../assets/fileforge-couple.gif',import.meta.url));
+ const still=readFileSync(new URL('../assets/fileforge-couple-still.png',import.meta.url));
+ assert.equal(gif.subarray(0,6).toString(),'GIF89a');
+ assert.ok(gif.byteLength<75_000,'The hero animation should stay lightweight');
+ assert.equal(still.subarray(1,4).toString(),'PNG');
+});
