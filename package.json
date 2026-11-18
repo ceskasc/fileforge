@@ -1,6 +1,7 @@
 {
   "name": "fileforge",
-  "version": "1.4.0",
+  "version": "1.4.1",
+  "cloudOrigin": "https://fileforge-ai-five.vercel.app",
   "private": true,
   "type": "module",
   "description": "Image studio with local tools and optional server-side AI, by Sad\u0131k Can \u00c7e\u015fka",
