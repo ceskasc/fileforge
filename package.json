@@ -1,6 +1,6 @@
 {
   "name": "fileforge",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "cloudOrigin": "https://fileforge-ai-five.vercel.app",
   "private": true,
   "type": "module",

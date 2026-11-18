@@ -1,11 +1,12 @@
 import{ForgeError,LIMITS,inspectImage,targetDimensions,outputType,outputName,zipImages}from'./engine.mjs';
 import{createImageProcessor}from'./image-client.mjs';
 import{messages}from'./i18n.mjs';
+import{cloudIsHealthy}from'./cloud-health.mjs';
 const $=id=>document.getElementById(id),pause=()=>new Promise(r=>setTimeout(r,0));
 const processor=createImageProcessor();
 const cloudOrigin=document.querySelector('meta[name="fileforge-cloud-origin"]').content;
 let language='tr';try{language=localStorage.getItem('fileforge-language')==='en'?'en':'tr';}catch{}
-const state={items:[],selected:null,mode:'convert',busy:false,adding:false,zipping:false,controller:null,zoom:false,panX:0,panY:0,counter:0,supported:new Set(['png','jpeg','webp']),feedback:null};
+const state={items:[],selected:null,mode:'convert',busy:false,adding:false,zipping:false,controller:null,zoom:false,panX:0,panY:0,counter:0,supported:new Set(['png','jpeg','webp']),feedback:null,cloudReady:false,cloudChecking:false};
 const t=(key,vars={})=>Object.entries(vars).reduce((s,[name,v])=>s.replaceAll('{'+name+'}',String(v)),messages[language][key]||messages.tr[key]||key);
 const selected=()=>state.items.find(i=>i.id===state.selected);
 const bytes=n=>n<1024?n+' B':new Intl.NumberFormat(language==='tr'?'tr-TR':'en-US',{maximumFractionDigits:n<1048576?0:2}).format(n/(n<1048576?1024:1048576))+(n<1048576?' KB':' MB');
@@ -14,7 +15,26 @@ const icon=name=>{const s=document.createElementNS('http://www.w3.org/2000/svg',
 function notice(key,vars={},error=false){state.feedback={key,vars,error};$('feedback').textContent=t(key,vars);$('feedback').classList.toggle('error',error);}
 const errorMessage=code=>t('error'+(code||'PROCESS'));
 function readSettings(){return{mode:state.mode,enhancementMethod:$('enhancementMethod').value,format:$('format').value,quality:Number($('quality').value),width:$('width').value,height:$('height').value,lockAspect:$('lockAspect').checked,allowUpscale:$('allowUpscale').checked,scale:Number($('scale').value),sharpness:Number($('sharpness').value),denoise:Number($('denoise').value),contrast:$('contrast').checked,background:$('background').value};}
-const isCloud=s=>s.mode==='enhance'&&s.enhancementMethod==='cloud'&&Boolean(cloudOrigin);
+const isCloud=s=>s.mode==='enhance'&&s.enhancementMethod==='cloud'&&state.cloudReady;
+function updateCloudUI(){
+ if(!cloudOrigin)return;
+ $('cloudMethod').hidden=!state.cloudReady;
+ $('cloudMethod').disabled=!state.cloudReady;
+ $('cloudStatus').hidden=state.cloudReady;
+ $('cloudStatusText').textContent=t(state.cloudChecking?'cloudChecking':'cloudOffline');
+ $('retryCloudButton').disabled=state.cloudChecking||state.busy;
+}
+async function refreshCloud(){
+ if(!cloudOrigin||state.cloudChecking||state.busy)return;
+ state.cloudChecking=true;
+ updateCloudUI();
+ const ready=await cloudIsHealthy(cloudOrigin);
+ state.cloudReady=ready;
+ state.cloudChecking=false;
+ if(!ready&&$('enhancementMethod').value==='cloud')$('enhancementMethod').value='photo';
+ updateCloudUI();
+ render();
+}
 const methodHints={cloud:'cloudHint',photo:'photoHint',fast:'fastHint',ultra:'ultraHint',classic:'classicHint'};
 const strengthPresets=()=>{
  const method=$('enhancementMethod').value;
@@ -104,7 +124,7 @@ function translate(){
  document.querySelectorAll('[data-i18n-label]').forEach(e=>e.setAttribute('aria-label',t(e.dataset.i18nLabel)));
  document.querySelectorAll('[data-i18n-placeholder]').forEach(e=>{e.placeholder=t(e.dataset.i18nPlaceholder);});
  $('languageButton').textContent=language==='tr'?'EN':'TR';$('languageButton').setAttribute('aria-label',t('language'));
- if(state.feedback)notice(state.feedback.key,state.feedback.vars,state.feedback.error);render();
+ if(state.feedback)notice(state.feedback.key,state.feedback.vars,state.feedback.error);updateCloudUI();render();
 }
 function chooseMode(mode){
  if(state.busy||state.adding||state.zipping)return;
@@ -152,7 +172,12 @@ async function processAll(event){
    const retained=state.items.reduce((n,other)=>n+(other.id!==item.id?other.output?.blob.size||0:0),0);if(retained+output.blob.size>LIMITS.outputBytes)throw new ForgeError('OUTPUT_MEMORY');
    if(item.outputUrl)URL.revokeObjectURL(item.outputUrl);output.name=outputName(item.file.name,output.type,settings.mode);
    item.output=output;item.outputUrl=URL.createObjectURL(output.blob);item.signature=signature;item.meta.width=output.sourceWidth;item.meta.height=output.sourceHeight;item.status='done';completed++;
-  }catch(e){if(e.name==='AbortError'){item.status=item.output?'done':'ready';break;}item.status='error';item.error=e.code||'PROCESS';failures++;}
+  }catch(e){if(e.name==='AbortError'){item.status=item.output?'done':'ready';break;}if(isCloud(settings)&&['CLOUD_UNAVAILABLE','CLOUD_TIMEOUT'].includes(e.code)){
+     state.cloudReady=false;
+     if($('enhancementMethod').value==='cloud')$('enhancementMethod').value='photo';
+     updateCloudUI();
+    }
+    item.status='error';item.error=e.code||'PROCESS';failures++;}
   renderQueue();renderPreview();await pause();
  }
  const cancelled=signal.aborted;state.busy=false;state.controller=null;$('progressArea').hidden=true;
@@ -166,9 +191,9 @@ async function downloadZip(){
  try{downloadBlob(await zipImages(entries,pause),'fileforge-images.zip');}catch(e){notice('error'+(e.code||'ARCHIVE'),{},true);}finally{state.zipping=false;updateControls();renderQueue();}
 }
 if(cloudOrigin){
- $('cloudMethod').hidden=false;$('cloudMethod').disabled=false;
- $('enhancementMethod').value='cloud';
  document.querySelectorAll('[data-cloud-copy]').forEach(element=>{element.hidden=false;});
+ $('retryCloudButton').addEventListener('click',refreshCloud);
+ void refreshCloud();
 }
 $('beforeImage').addEventListener('load',()=>{const item=selected(),img=$('beforeImage');if(item&&img.getAttribute('src')===item.url&&img.naturalWidth&&(item.meta.width!==img.naturalWidth||item.meta.height!==img.naturalHeight)){item.meta.width=img.naturalWidth;item.meta.height=img.naturalHeight;updateControls();renderQueue();}});
 $('beforeImage').addEventListener('error',()=>{if(selected())notice('errorDECODE',{},true);});
