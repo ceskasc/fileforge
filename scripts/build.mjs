@@ -9,13 +9,20 @@ for(const name of['models','vendor'])cpSync('.ai-cache/'+name,'public/'+name,{re
 cpSync('.ai-cache/ai-assets-manifest.json','public/ai-assets-manifest.json');
 cpSync('THIRD_PARTY.md','public/THIRD_PARTY.md');
 function walk(dir){return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(join(dir,e.name)):[join(dir,e.name)]);}
-const version=JSON.parse(readFileSync('package.json','utf8')).version,tag=encodeURIComponent(version);
+const config=JSON.parse(readFileSync('package.json','utf8')),tag=encodeURIComponent(config.version);
 for(const file of walk('public/src').filter(p=>/\.m?js$/.test(p))){
  const source=readFileSync(file,'utf8').replace(/(['"])(\.\.?\/[^'"]+\.m?js)\1/g,(_,quote,path)=>quote+path+'?v='+tag+quote);
  writeFileSync(file,source);
  execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 }
-const page=readFileSync('public/index.html','utf8').replace(/((?:src|href)="[^"]+\.(?:css|m?js))"/g,(_,prefix)=>prefix+'?v='+tag+'"');
+let page=readFileSync('public/index.html','utf8').replace(/((?:src|href)="[^"]+\.(?:css|m?js))"/g,(_,prefix)=>prefix+'?v='+tag+'"');
+const cloudOrigin=(process.env.FILEFORGE_CLOUD_ORIGIN??config.cloudOrigin??'').trim();
+if(cloudOrigin){
+ const url=new URL(cloudOrigin),local=['localhost','127.0.0.1'].includes(url.hostname);
+ if(url.origin!==cloudOrigin||!(url.protocol==='https:'||local&&url.protocol==='http:'))throw new Error('FILEFORGE_CLOUD_ORIGIN must be an HTTPS origin or a local development origin');
+ page=page.replace('<meta name="fileforge-cloud-origin" content="">','<meta name="fileforge-cloud-origin" content="'+url.origin+'">')
+  .replace("connect-src 'self';","connect-src 'self' "+url.origin+";");
+}
 writeFileSync('public/index.html',page);
 for(const match of page.matchAll(/(?:src|href)="\.\/([^"]*)"/g)){
  const path=match[1].split(/[?#]/)[0];

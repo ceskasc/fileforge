@@ -2,13 +2,13 @@ import{ForgeError,LIMITS,inspectImage,targetDimensions,outputType,resizePixels,f
 import{createCanvas}from'./canvas-surface.mjs';
 import{processingError}from'./errors.mjs';
 const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
-async function decode(file){
+export async function decode(file){
  if(typeof createImageBitmap==='function'){try{return await createImageBitmap(file,{imageOrientation:'from-image'});}catch(error){if(/memory|allocat/i.test(error.message||''))throw error;}}
  if(typeof document==='undefined')throw new ForgeError('DECODE');
  const url=URL.createObjectURL(file);
  try{const image=new Image();image.src=url;await image.decode();return image;}catch(error){throw processingError(error,'decode');}finally{URL.revokeObjectURL(url);}
 }
-async function encode(canvas,type,quality){
+export async function encode(canvas,type,quality){
  try{
   const blob=canvas.convertToBlob?await canvas.convertToBlob({type,quality}):await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new ForgeError('ENCODE')),type,quality));
   if(!blob||blob.type!==type)throw new ForgeError('FORMAT_UNAVAILABLE');return blob;

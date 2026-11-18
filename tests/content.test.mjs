@@ -13,8 +13,11 @@ test('TR and EN cover every translated field and share interpolation variables',
   assert.deepEqual(vars(messages.tr[key]),vars(messages.en[key]),key);
  }
 });
-test('runtime is self-hosted; user files are never sent through a network API',()=>{
+test('the local runtime is self-hosted and uploads require the configured server method',()=>{
  assert.ok(!/\b(fetch|XMLHttpRequest|WebSocket)\s*\(/.test(app));
+ assert.match(app,/if\(isCloud\(settings\)\)\{\s*const \{enhanceInCloud\}/);
+ assert.match(html,/<option id="cloudMethod" value="cloud" hidden disabled/);
+ assert.match(html,/<meta name="fileforge-cloud-origin" content="">/);
  assert.ok(!html.includes('https://fonts.googleapis.com'));assert.ok(html.includes('Content-Security-Policy'));
  for(const m of html.matchAll(/(?:src|href)="\.\/([^"#]+)(?:#[^"]*)?"/g)){
   if(m[1].endsWith('.png'))continue;assert.ok(existsSync(new URL('../'+m[1],import.meta.url)),m[1]);

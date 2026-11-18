@@ -5,3 +5,4 @@ node_modules/
 .ai-cache/
 ai-validation.json
 ai-speed-validation.json
+__pycache__/

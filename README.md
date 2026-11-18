@@ -13,7 +13,8 @@ Durağan JPG, PNG ve WebP dönüştürme; WebP/JPEG sıkıştırma; oran koruyan
 ### AI fotoğraf iyileştirme
 
 - **AI · Hızlı büyüt:** Tarayıcıya uygun hafif RDN 2× modeli; 222.075 parametre ve yaklaşık 0,9 MB ağırlık.
-- **AI · Fotoğrafı onar (varsayılan):** Gerçek fotoğraf bozulmalarına karşı eğitilmiş **RealESRGAN general x4v3**; 1.213.296 parametre, yaklaşık 4,9 MB ağırlık. Bulanıklık ve sıkıştırma izleri için.
+- **AI · Cihazda onar** yaklaşık 4,9 MB ağırlığında **RealESRGAN general x4v3** ile bulanıklık ve sıkıştırma izlerini azaltır.
+- **AI · Sunucuda onar** sunucu bağlandığında **Real-ESRGAN x2plus** modelini ONNX Runtime üzerinde çalıştırır. Büyük görseller model için küçültülür. Modelin ürettiği ayrıntılar, 1× veya 2× ölçüdeki görsele uygulanır.
 - **AI · Ultra detay:** Daha derin RRDN / ESRGAN 2× modeli; yaklaşık 29 MB ağırlık ve daha uzun işlem süresi.
 - **Hızlı filtre:** Model indirmeden kenar koruyan gürültü azaltma ve kontrollü netleştirme.
 
@@ -25,7 +26,7 @@ TensorFlow.js ve yalnızca seçilen model ilk kullanımda aynı siteden yükleni
 
 ## Gizlilik ve sınırlar
 
-Fotoğraflar veya sonuçlar hiçbir sunucuya yüklenmez. Harici çalışma zamanı CDN'i, üyelik, API anahtarı veya takipçi kullanılmaz. Tema ve dil yalnızca cihazda saklanır. EXIF ve konum bilgileri çıktıya kopyalanmaz.
+Yerel araçlar fotoğrafları cihazda işler. Sunucuda onarma başlatıldığında fotoğraf FileForge sunucusuna gönderilir. Sunucu fotoğrafı ve sonucu işlem boyunca bellekte tutar. Tema ve dil cihazda saklanır. EXIF ve konum bilgileri çıktıya kopyalanmaz.
 
 Bir seferde **10 dosya / toplam 80 MiB**, dosya başına **25 MiB**; girişler **24 MP**, çıktılar **16 MP / uzun kenar 8192 px**. Sonuç belleği 96 MiB. 2× sınırı aşarsa 1× seçilebilir veya önce boyutlandırılabilir. Hareketli GIF, APNG ve WebP desteklenmez. Profesyonel ICC / HDR iş akışı amaçlanmaz.
 
@@ -54,6 +55,10 @@ Birim testleri dosya doğrulama, geometri, şeffaflık, filtreler, ZIP uyumlulu�
 ## Yayın
 
 GitHub Pages kaynağı **GitHub Actions** olmalıdır. Main üzerindeki değişiklikler varlık doğrulaması, test ve paketleme başarılı olunca otomatik yayımlanır. `ai-photo-quality` dalı aynı kontrolleri çalıştırır ve üretime yayımlamaz. Yayından sonra HTML, AI runtime ve üç model manifestinin HTTP erişimi ayrıca kontrol edilir.
+
+Sunucu modu için `cloud/` dizinini bir FastAPI projesi olarak dağıt. `/api/health` servis ve model adını döndürür. Tarayıcıya sunucu adresi vermek için `package.json` içindeki `cloudOrigin` alanına HTTPS origin değerini yaz. Yerel denemede bu ayar `FILEFORGE_CLOUD_ORIGIN=http://127.0.0.1:8000 npm run build` ile değiştirilebilir. Köken ayarı boşken arayüz cihazda çalışan yöntemleri gösterir.
+
+Sunucu, en fazla 4 MB boyutunda JPG, PNG ve WebP yüklemesi alır. Tarayıcı daha büyük dosyaları aynı ölçüde yeniden kodlayarak göndermeyi dener. Sunucu ilk gerçek işlemde resmi model ağırlığını indirir ve SHA-256 doğrulamasından sonra ONNX modelini belleğe yükler.
 
 ## Kaynak yapısı
 
