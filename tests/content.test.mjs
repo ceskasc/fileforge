@@ -34,3 +34,13 @@ test('the pixel companion is self-hosted, animated and accessible with reduced m
  assert.ok(gif.byteLength<75_000,'The hero animation should stay lightweight');
  assert.equal(still.subarray(1,4).toString(),'PNG');
 });
+
+test('the before/after divider works directly on the photo, without a second slider bar',()=>{
+ assert.doesNotMatch(html,/id="compareSlider"|id="compareControl"/);
+ assert.match(html,/class="compare-line" id="compareLine" role="slider"/);
+ assert.match(html,/aria-valuemin="0" aria-valuemax="100"/);
+ assert.match(app,/compareStage\.addEventListener\('pointerdown'/);
+ assert.match(app,/compareStage\.addEventListener\('pointermove'/);
+ assert.match(app,/\$\('compareLine'\)\.addEventListener\('keydown'/);
+ assert.match(app,/state\.zoom/);
+});
